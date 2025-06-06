@@ -18,6 +18,8 @@ namespace ApiService.Models
         public string Docdate { get; set; }
         public string Cusname { get; set; }
         public string Delivery { get; set; }
+        public string DeliveryId { get; set; }
+        public string Urldetail { get; set; }
         public string User { get; set; }
     }
     public class SmsResponse
