@@ -18,42 +18,20 @@ namespace ApiService.Controllers
     //    void SaveApiResponse(string method, string inservice, string user);
     //    void UpdateApiRespone(string inservice, string respon);
     //}
+
     public class ApiServerController : Controller
     {
-        //[Route("CheckId/{id}")]
-        //[HttpGet]
-        //public IHttpActionResult CheckId(int id)
-        //{
+        public string Env { get; set; }
+        public string getEnv()
+        {
+            Env = ConfigurationManager.AppSettings["Environment"];
+            return Env;
+        }
 
-        //    if (id < 10) // No error hanbdling at all:
-        //    {
-        //        int a = 1;
-        //        int b = 0;
-        //        int c = 0;
-        //        c = a + b; //it would cause exception.
-        //        id = id * 3;
-        //    }
-        //    else if (id < 20) // Error handling by HttpResponseException with HttpStatusCode
-        //    {
-        //        throw new HttpResponseException(HttpStatusCode.BadRequest);
-        //    }
-        //    else if (id < 30) // Error handling by HttpResponseException with HttpResponseMessage
-        //    {
-        //        var response = new HttpResponseMessage(HttpStatusCode.BadRequest)
-        //        {
-        //            Content = new StringContent(string.Format("No Employee found with ID = {0}", 10)),
-        //            ReasonPhrase = "Employee Not Found"
-        //        };
-
-        //        throw new HttpResponseException(response);
-        //    }
-
-        //    return Ok(id);
-        //}
         public string SaveApiResponse(string method, string inservice, string user)
         {
             if (string.IsNullOrEmpty(user)) { 
-                user = "SystemApiService";
+                user = "System";
             }
             var outReturn = "";
             var connectionString = ConfigurationManager.ConnectionStrings["APIDB_ConnectionString"].ConnectionString;
@@ -103,14 +81,4 @@ namespace ApiService.Controllers
             conn.Close();
         }
     }
-    //public class ApiServerInjectionController : ApiController
-    //{
-    //    private readonly IApiServerService _apiServerService;
-
-    //    public ApiServerInjectionController(IApiServerService apiServerService)
-    //    {
-    //        _apiServerService = apiServerService;
-    //    }
-
-    //}
 }
