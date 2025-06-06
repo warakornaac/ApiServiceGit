@@ -39,4 +39,32 @@ namespace ApiService.Models
         public string MessageId { get; set; }
         public int UsedCredit { get; set; }
     }
+
+
+
+    //API CHATBOT
+    public class ApiResponse<T>
+    {
+        public string Status { get; set; }
+        public string Message { get; set; }
+        public T Data { get; set; }
+    }
+    public class NVBackOrder
+    {
+        public string order_number { get; set; }
+        public DateTime recorded_date { get; set; }
+        public string customer_code { get; set; }
+        public string customer_name { get; set; }
+        public string part_no { get; set; }
+        public string product_name { get; set; }
+        public int bo_quantity { get; set; }
+        public int stock_available_for_sale { get; set; }
+        public decimal amount { get; set; }
+
+    }
+    public class Customer
+    {
+        public string customer_code { get; set; }
+        public string customer_name { get; set; }
+    }
 }
