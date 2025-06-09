@@ -64,7 +64,27 @@ namespace ApiService.Models
         public decimal amount { get; set; }
 
     }
+    public class StkPrice
+    {
+        public string customer_code { get; set; }
+        public string part_no { get; set; }
+        public string product_name { get; set; }
+        public string company { get; set; }
+        public decimal structure_price { get; set; }
+        public decimal special_price { get; set; }
+        public decimal previous_price { get; set; }
+        public int stock_quantity { get; set; }
+        //public string available_stock { get; set; }
+        public DateTime estimated_arrival_date { get; set; }
+
+    }
     public class Customer
+    {
+        public string customer_code { get; set; }
+        public string customer_name { get; set; }
+    }
+
+    public class StkPrc
     {
         public string customer_code { get; set; }
         public string customer_name { get; set; }
