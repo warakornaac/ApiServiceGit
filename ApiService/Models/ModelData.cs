@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
@@ -74,8 +75,39 @@ namespace ApiService.Models
         public decimal special_price { get; set; }
         public decimal previous_price { get; set; }
         public int stock_quantity { get; set; }
-        //public string available_stock { get; set; }
         public DateTime estimated_arrival_date { get; set; }
+
+    }
+    public class StkPrice_false
+    {
+        public string customer_code { get; set; }
+        public string part_no { get; set; }
+        public string product_name { get; set; }
+        public string company { get; set; }
+        public decimal structure_price { get; set; }
+        public decimal special_price { get; set; }
+        public decimal previous_price { get; set; }
+        public DateTime estimated_arrival_date { get; set; }
+    }
+    public class StkDeliveryHead<T>
+    {
+        public string order_number { get; set; }
+        public DateTime purchase_date { get; set; }
+        public string customer_name { get; set; }
+        public string customer_code { get; set; }
+        public T product { get; set; }
+        public string deivery_status { get; set; }
+        public DateTime? esimated_arrival_date { get; set; }
+    }
+    public class product_detail
+    {
+        [JsonIgnore]
+        public string order_number { get; set; }
+
+        public string part_no { get; set; }
+        public string product_name { get; set; }
+        public int order_quantity { get; set; }
+        public decimal total { get; set; }
 
     }
     public class Customer
