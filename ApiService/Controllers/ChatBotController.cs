@@ -176,7 +176,10 @@ namespace ApiService.Controllers
                             special_price = reader["Special_Price"] != DBNull.Value ? Convert.ToDecimal(reader["Special_Price"]) : 0,
                             previous_price = reader["LastSalesPrice"] != DBNull.Value ? Convert.ToDecimal(reader["LastSalesPrice"]) : 0,
                             stock_quantity = reader["TOTBAL"] != DBNull.Value ? Convert.ToInt32(reader["TOTBAL"]) : 0,
-                            estimated_arrival_date = reader["Estimate_Date_Arrival"] != DBNull.Value ? Convert.ToDateTime(reader["Estimate_Date_Arrival"]) : DateTime.MinValue
+                            //estimated_arrival_date = reader["Estimate_Date_Arrival"] != DBNull.Value ? Convert.ToDateTime(reader["Estimate_Date_Arrival"]) : DateTime.MinValue
+                            estimated_arrival_date = reader["Estimate_Date_Arrival"] != DBNull.Value
+                                ? (DateTime?)Convert.ToDateTime(reader["Estimate_Date_Arrival"])
+                                : null
                         };
                         stk.Add(item);
                     }
@@ -191,7 +194,9 @@ namespace ApiService.Controllers
                             structure_price = reader["SalePrice"] != DBNull.Value ? Convert.ToDecimal(reader["SalePrice"]) : 0,
                             special_price = reader["Special_Price"] != DBNull.Value ? Convert.ToDecimal(reader["Special_Price"]) : 0,
                             previous_price = reader["LastSalesPrice"] != DBNull.Value ? Convert.ToDecimal(reader["LastSalesPrice"]) : 0,
-                            estimated_arrival_date = reader["Estimate_Date_Arrival"] != DBNull.Value ? Convert.ToDateTime(reader["Estimate_Date_Arrival"]) : DateTime.MinValue
+                            estimated_arrival_date = reader["Estimate_Date_Arrival"] != DBNull.Value
+                                ? (DateTime?)Convert.ToDateTime(reader["Estimate_Date_Arrival"])
+                                : null
                         };
                         stk.Add(item);
                     }
@@ -202,7 +207,7 @@ namespace ApiService.Controllers
                     var resFail = new ApiResponse<object>
                     {
                         Status = "Not Found",
-                        Message = "No product found matching the provided OE No. or Part No.",
+                        Message = "No product found matching the provided Part No.",
                         Data = null
                     };
                     string lastresFail = _apiServerService.SaveApiResponse("Chatbot/SearchPriceStock", jsonLog, "");

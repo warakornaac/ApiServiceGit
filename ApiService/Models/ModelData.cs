@@ -75,7 +75,7 @@ namespace ApiService.Models
         public decimal special_price { get; set; }
         public decimal previous_price { get; set; }
         public int stock_quantity { get; set; }
-        public DateTime estimated_arrival_date { get; set; }
+        public DateTime? estimated_arrival_date { get; set; }
 
     }
     public class StkPrice_false
@@ -87,7 +87,7 @@ namespace ApiService.Models
         public decimal structure_price { get; set; }
         public decimal special_price { get; set; }
         public decimal previous_price { get; set; }
-        public DateTime estimated_arrival_date { get; set; }
+        public DateTime? estimated_arrival_date { get; set; }
     }
     public class StkDeliveryHead<T>
     {
