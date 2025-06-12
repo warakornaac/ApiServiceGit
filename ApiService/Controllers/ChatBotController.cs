@@ -39,7 +39,7 @@ namespace ApiService.Controllers
                 part_no = part_no,
                 order_number = order_number
             });
-            if (customer_code == "")
+            if (string.IsNullOrWhiteSpace(customer_code))
             {
                 var resFail = new ApiResponse<object>
                 {
@@ -129,7 +129,7 @@ namespace ApiService.Controllers
         //API 2
         [HttpGet]
         [Route("price-stock")]
-        public HttpResponseMessage GetPriceStk(string customer_code = "", string part_no = "", Boolean stock_flag = false)
+        public HttpResponseMessage GetPriceStk(string customer_code = "", string part_no = "", Boolean? stock_flag = false)
         {
             var stk = new List<object>();
             var jsonLog = JsonConvert.SerializeObject(new
@@ -138,7 +138,7 @@ namespace ApiService.Controllers
                 part_no = part_no,
                 stock_flag = stock_flag
             });
-            if (customer_code == "" || part_no == "")
+            if (string.IsNullOrEmpty(customer_code) || string.IsNullOrEmpty(part_no))
             {
                 var resFail = new ApiResponse<object>
                 {
@@ -164,7 +164,7 @@ namespace ApiService.Controllers
                 SqlDataReader reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
-                    if (stock_flag)
+                    if (stock_flag == true)
                     {
                         var item = new StkPrice
                         {
@@ -384,7 +384,7 @@ namespace ApiService.Controllers
                 customer_code = customer_code
             });
 
-            if (customer_code == "")
+            if (string.IsNullOrEmpty(customer_code))
             {
                 var resFail = new ApiResponse<object>
                 {
