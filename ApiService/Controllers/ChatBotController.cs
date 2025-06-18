@@ -397,7 +397,7 @@ namespace ApiService.Controllers
                 return Request.CreateResponse(HttpStatusCode.BadRequest, resFail);
             }
             var connectionString = ConfigurationManager.ConnectionStrings["MobileOrder_ConnectionString"].ConnectionString;
-            string SQL = "select [CUSCOD],[CUSNAM] from [dbo].[CUSPROV] where CUSCOD = @cuscod";
+            string SQL = "select [CUSCOD],[CUSNAM] from [dbo].[v_CUSPROV] where CUSCOD = @cuscod";
             SqlConnection conn = new SqlConnection(connectionString);
             conn.Open();
             try
