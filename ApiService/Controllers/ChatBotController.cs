@@ -12,6 +12,7 @@ using System.Web.Http;
 using Newtonsoft.Json;
 using System.Net.Http.Headers;
 using System.Web.Configuration;
+using ApiService.Filters;
 
 namespace ApiService.Controllers
 {
@@ -26,7 +27,6 @@ namespace ApiService.Controllers
         }
 
         // GET: ChatBot
-
         //API 1.2
         [HttpGet]
         [Route("orders/search")]
@@ -176,6 +176,10 @@ namespace ApiService.Controllers
                             special_price = reader["Special_Price"] != DBNull.Value ? Convert.ToDecimal(reader["Special_Price"]) : 0,
                             previous_price = reader["LastSalesPrice"] != DBNull.Value ? Convert.ToDecimal(reader["LastSalesPrice"]) : 0,
                             stock_quantity = reader["TOTBAL"] != DBNull.Value ? Convert.ToInt32(reader["TOTBAL"]) : 0,
+                            moq = reader["MOQ"] != DBNull.Value ? Convert.ToInt32(reader["MOQ"]) : 0,
+                            sales_packing_standard = reader["sales_packing_standard"] != DBNull.Value ? Convert.ToInt32(reader["sales_packing_standard"]) : 0,
+                            is_eop = reader["is_eop"] != DBNull.Value ? (Convert.ToInt32(reader["is_eop"]) == 1 ? true : false) : false,
+                            subtitute_product = reader["subtitute_product"] != DBNull.Value ? reader["subtitute_product"].ToString() : "",
                             //estimated_arrival_date = reader["Estimate_Date_Arrival"] != DBNull.Value ? Convert.ToDateTime(reader["Estimate_Date_Arrival"]) : DateTime.MinValue
                             estimated_arrival_date = reader["Estimate_Date_Arrival"] != DBNull.Value
                                 ? (DateTime?)Convert.ToDateTime(reader["Estimate_Date_Arrival"])
@@ -194,6 +198,10 @@ namespace ApiService.Controllers
                             structure_price = reader["SalePrice"] != DBNull.Value ? Convert.ToDecimal(reader["SalePrice"]) : 0,
                             special_price = reader["Special_Price"] != DBNull.Value ? Convert.ToDecimal(reader["Special_Price"]) : 0,
                             previous_price = reader["LastSalesPrice"] != DBNull.Value ? Convert.ToDecimal(reader["LastSalesPrice"]) : 0,
+                            moq = reader["MOQ"] != DBNull.Value ? Convert.ToInt32(reader["MOQ"]) : 0,
+                            sales_packing_standard = reader["sales_packing_standard"] != DBNull.Value ? Convert.ToInt32(reader["sales_packing_standard"]) : 0,
+                            is_eop = reader["is_eop"] != DBNull.Value ? (Convert.ToInt32(reader["is_eop"]) == 1 ? true : false) : false,
+                            subtitute_product = reader["subtitute_product"] != DBNull.Value ? reader["subtitute_product"].ToString() : "",
                             estimated_arrival_date = reader["Estimate_Date_Arrival"] != DBNull.Value
                                 ? (DateTime?)Convert.ToDateTime(reader["Estimate_Date_Arrival"])
                                 : null
