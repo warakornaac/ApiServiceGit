@@ -178,6 +178,7 @@
     <Compile Include="Controllers\ScgController.cs" />
     <Compile Include="Controllers\SmsController.cs" />
     <Compile Include="Controllers\TechdocController.cs" />
+    <Compile Include="Controllers\UploadController.cs" />
     <Compile Include="Filters\ApiKeyAuthorizeAttribute.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
@@ -250,6 +251,7 @@
     <Folder Include="Views\SaleOrder\" />
     <Folder Include="Views\Sms\" />
     <Folder Include="Views\Techdoc\" />
+    <Folder Include="Views\Upload\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="fonts\glyphicons-halflings-regular.woff2" />

@@ -12,10 +12,10 @@ using System.Web.Http;
 using Newtonsoft.Json;
 using System.Net.Http.Headers;
 using System.Web.Configuration;
+using ApiService.Filters;
 
 namespace ApiService.Controllers
 {
-
     public class ChatBotController : ApiController
     {
         private readonly ApiServerController _apiServerService;
@@ -30,6 +30,7 @@ namespace ApiService.Controllers
         //API 1.2
         [HttpGet]
         [Route("orders/search")]
+        [ApiKeyAuthorize]
         public HttpResponseMessage GetSearchBO(string customer_code = "", string part_no = "", string order_number = "")
         {
             var bo = new List<NVBackOrder>();
@@ -129,6 +130,7 @@ namespace ApiService.Controllers
         //API 2
         [HttpGet]
         [Route("price-stock")]
+        [ApiKeyAuthorize]
         public HttpResponseMessage GetPriceStk(string customer_code = "", string part_no = "", Boolean? stock_flag = false)
         {
             var stk = new List<object>();
@@ -246,6 +248,7 @@ namespace ApiService.Controllers
         ////API 4
         [HttpGet]
         [Route("delivery-status/search")]
+        [ApiKeyAuthorize]
         public HttpResponseMessage GetDeliveryStatus(string customer_code = "", string purchase_date = "", string part_no = "", string order_status = "", string order_number = "")
         {
             var header = new List<StkDeliveryHead<List<product_detail>>>();
@@ -376,6 +379,7 @@ namespace ApiService.Controllers
         //API 5
         [HttpGet]
         [Route("SearchCustomerMaster")]
+        [ApiKeyAuthorize]
         public HttpResponseMessage GetCustomer(string customer_code = "")
         {
             var cus = new List<Customer>();
@@ -454,8 +458,6 @@ namespace ApiService.Controllers
             }
             catch (Exception ex)
             {
-
-
                 var resFail = new ApiResponse<object>
                 {
                     Status = "Internal Server Error",

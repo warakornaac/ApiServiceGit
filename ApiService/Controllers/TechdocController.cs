@@ -35,16 +35,26 @@ namespace ApiService.Controllers
         public async Task<IHttpActionResult> PostAsync([FromBody] SendArticlesModels models)
         {
             var client = new HttpClient();
-            var request = new HttpRequestMessage(HttpMethod.Post, "https://vin.tecalliance-sea.com/api/tecdoc");
-            request.Headers.Add("Authorization", "Aw4OMYTNcOzOYMgD4zN5MYgMkuO4DCDz");
 
+            var request = new HttpRequestMessage(HttpMethod.Post, "https://vin.tecalliance-sea.com/api/tecdoc");
+
+            // Authorization: Bearer or X-API-Key (ดูจาก Postman)
+            request.Headers.Add("Authorization", "Aw4OMYTNcOzOYMgD4zN5MYgMkuO4DCDz");
+            //// จำลอง User-Agent ของ Postman
+            //request.Headers.UserAgent.ParseAdd("PostmanRuntime/7.29.0");
+            //// Accept JSON
+            //request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            // JSON Body ต้องตรงโครงสร้าง API
             var requestObj = new ArticlesRequestMain
             {
                 getArticles = new ArticlesRequestSub
                 {
                     articleCountry = "TH",
+                    lang = "TH",
                     searchType = 0,
                     searchQuery = models.Partno,
+                    dataSupplierIds = models.SupplierId,
                     includeAll = true,
                     searchExact = true,
                     includeLinkages = true,
@@ -53,20 +63,23 @@ namespace ApiService.Controllers
                     includeLinks = true
                 }
             };
-            // สร้าง StringContent สำหรับ body ของคำขอ
+
+            // JSON serialize พร้อม JsonProperty ด้านบน
             var json = JsonConvert.SerializeObject(requestObj);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-            request.Content = content;
-
+            request.Content = new StringContent(json, Encoding.UTF8, "application/json");
             var response = await client.SendAsync(request);
-            response.EnsureSuccessStatusCode();
             var responseBody = await response.Content.ReadAsStringAsync();
-            //String modelsJson = JsonConvert.SerializeObject(models);
-            //Insert request log
-            //String lastId = _apiServerService.SaveApiResponse("Post/Articles", modelsJson.ToString(), models.User.ToString());
-            //Update respond log
-            //_apiServerService.UpdateApiRespone(lastId, responseBody.ToString());
+
+            //if (!response.IsSuccessStatusCode)
+            //{
+            //    return Content(response.StatusCode, new
+            //    {
+            //        Success = false,
+            //        StatusCode = response.StatusCode,
+            //        Message = "Request failed.",
+            //        ServerResponse = responseBody
+            //    });
+            //}
 
             // Deserialize the response body to get image data
             var apiResponse = JsonConvert.DeserializeObject<ApiResponse>(responseBody);
@@ -75,6 +88,7 @@ namespace ApiService.Controllers
             List<string> articleNumber = new List<string>();
             List<string> additionalDescriptions = new List<string>();
             List<string> articleStatusDescription = new List<string>();
+            List<string> quantityPerPackage = new List<string>();
             List<GenericArticle> genericArticles = new List<GenericArticle>();
             List<image> images = new List<image>();
             List<OemNumber> oemNumbers = new List<OemNumber>();
@@ -90,7 +104,7 @@ namespace ApiService.Controllers
                     if (article.mfrName != null)
                     {
                         mfrName.Add(article.mfrName);
-                    }  
+                    }
                     //part no
                     if (article.articleNumber != null)
                     {
@@ -101,6 +115,7 @@ namespace ApiService.Controllers
                     {
                         additionalDescriptions.Add(article.misc.additionalDescription);
                         articleStatusDescription.Add(article.misc.articleStatusDescription);
+                        quantityPerPackage.Add(article.misc.quantityPerPackage);
                     }
                     //list genericArticles
                     if (article.genericArticles != null)
@@ -133,7 +148,7 @@ namespace ApiService.Controllers
                         tradeNumbersDetails.AddRange(article.tradeNumbersDetails);
                     }
                 }
-                IHttpActionResult actionResult = await GetArticlesLinkTarget4(models.Partno);
+                IHttpActionResult actionResult = await GetArticlesLinkTarget4(models.Partno, models.SupplierId);
                 // Cast to the concrete result type
                 var okResult = actionResult as OkNegotiatedContentResult<int>;
                 // Read the integer (or 0 if cast failed)
@@ -150,6 +165,7 @@ namespace ApiService.Controllers
                 ArticleNumber = articleNumber,
                 AdditionalDescriptions = additionalDescriptions,
                 ArticleStatusDescription = articleStatusDescription,
+                QuantityPerPackage = quantityPerPackage,
                 GenericArticles = genericArticles,
                 Images = images,
                 OemNumbers = oemNumbers,
@@ -210,11 +226,12 @@ namespace ApiService.Controllers
             public string tradeNumber { get; set; }
             public bool isImmediateDisplay { get; set; }
         }
-    
+
         public class Misc
         {
             public string additionalDescription { get; set; }
             public string articleStatusDescription { get; set; }
+            public string quantityPerPackage { get; set; }
 
         }
         public class GenericArticle
@@ -248,6 +265,7 @@ namespace ApiService.Controllers
         public class SendArticlesModels
         {
             public string Partno { get; set; }
+            public int SupplierId { get; set; }
         }
         public class ArticlesRequestMain
         {
@@ -256,8 +274,10 @@ namespace ApiService.Controllers
         public class ArticlesRequestSub
         {
             public string articleCountry { get; set; }
+            public string lang { get; set; }
             public int searchType { get; set; }
             public string searchQuery { get; set; }
+            public int dataSupplierIds { get; set; }
             public bool includeAll { get; set; }
             public bool searchExact { get; set; }
             public bool includeLinkages { get; set; }
@@ -267,21 +287,24 @@ namespace ApiService.Controllers
         }
 
         [Route("Post/ArticlesLinkTarget4")]
-        public async Task<IHttpActionResult> GetArticlesLinkTarget4(string Partno)
+        public async Task<IHttpActionResult> GetArticlesLinkTarget4(string Partno, int SupplierId)
         {
             //Partno = "0242135553";
             var client = new HttpClient();
             var request = new HttpRequestMessage(HttpMethod.Post, "https://vin.tecalliance-sea.com/api/tecdoc");
             request.Headers.Add("Authorization", "Aw4OMYTNcOzOYMgD4zN5MYgMkuO4DCDz");
-
+            //request.Headers.UserAgent.ParseAdd("PostmanRuntime/7.29.0");
+            //request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             var requestObj = new ArticlesRequestTarget4Main
             {
                 getArticleDirectSearchAllNumbersWithState = new ArticlesRequestTarget4Sub
                 {
                     articleCountry = "TH",
                     articleNumber = Partno,
-                    lang = "EN",
-                    numberType = 0
+                    brandId = SupplierId,
+                    lang = "TH",
+                    numberType = 0,
+                    searchExact = 1
                 }
             };
             // สร้าง StringContent สำหรับ body ของคำขอ
@@ -311,8 +334,10 @@ namespace ApiService.Controllers
         {
             public string articleCountry { get; set; }
             public string articleNumber { get; set; }
+            public int brandId { get; set; }
             public string lang { get; set; }
             public int numberType { get; set; }
+            public int searchExact { get; set; }
         }
         //response 
         public class ArticleLinkTarget4
@@ -347,15 +372,18 @@ namespace ApiService.Controllers
             var client = new HttpClient();
             var request = new HttpRequestMessage(HttpMethod.Post, "https://vin.tecalliance-sea.com/api/tecdoc");
             request.Headers.Add("Authorization", "Aw4OMYTNcOzOYMgD4zN5MYgMkuO4DCDz");
-
+            //request.Headers.UserAgent.ParseAdd("PostmanRuntime/7.29.0");
+            //request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             var requestObj = new ArticlesRequestTarget4Main
             {
                 getArticleDirectSearchAllNumbersWithState = new ArticlesRequestTarget4Sub
                 {
                     articleCountry = "TH",
                     articleNumber = models.Partno,
-                    lang = "EN",
-                    numberType = 10
+                    brandId = 0,//models.SupplierId,
+                    lang = "TH",
+                    numberType = 10,
+                    searchExact = 1
                 }
             };
             // สร้าง StringContent สำหรับ body ของคำขอ
@@ -396,7 +424,8 @@ namespace ApiService.Controllers
             var client = new HttpClient();
             var request = new HttpRequestMessage(HttpMethod.Post, "https://vin.tecalliance-sea.com/api/tecdoc");
             request.Headers.Add("Authorization", "Aw4OMYTNcOzOYMgD4zN5MYgMkuO4DCDz");
-
+            //request.Headers.UserAgent.ParseAdd("PostmanRuntime/7.29.0");
+            //request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             var requestObj = new ArticlesLinkedAllMain
             {
                 getArticleLinkedAllLinkingTarget4 = new ArticlesLinkedAllSub
@@ -469,12 +498,14 @@ namespace ApiService.Controllers
             var client = new HttpClient();
             var request = new HttpRequestMessage(HttpMethod.Post, "https://vin.tecalliance-sea.com/api/tecdoc");
             request.Headers.Add("Authorization", "Aw4OMYTNcOzOYMgD4zN5MYgMkuO4DCDz");
+            //request.Headers.UserAgent.ParseAdd("PostmanRuntime/7.29.0");
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             var requestObj = new LinkageTargetsMain
             {
                 getLinkageTargets = new LinkageTargetsSub
                 {
                     linkageTargetCountry = "TH",
-                    lang = "EN",
+                    lang = "TH",
                     linkageTargetIds = new ListId
                     {
                         id = linkingTargetId,
@@ -789,7 +820,7 @@ namespace ApiService.Controllers
                 getGenericArticles = new requestGroupProductAllSub
                 {
                     articleCountry = "TH",
-                    lang = "EN",
+                    lang = "TH",
                     searchTreeNodes = true
                 }
             };
