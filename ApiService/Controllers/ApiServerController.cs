@@ -30,7 +30,8 @@ namespace ApiService.Controllers
 
         public string SaveApiResponse(string method, string inservice, string user)
         {
-            if (string.IsNullOrEmpty(user)) { 
+            if (string.IsNullOrEmpty(user))
+            {
                 user = "System";
             }
             var outReturn = "";
