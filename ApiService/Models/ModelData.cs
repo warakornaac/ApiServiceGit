@@ -70,16 +70,17 @@ namespace ApiService.Models
         public string customer_code { get; set; }
         public string part_no { get; set; }
         public string product_name { get; set; }
+        public string brand { get; set; }
         public string company { get; set; }
         public decimal structure_price { get; set; }
         public decimal special_price { get; set; }
         public decimal previous_price { get; set; }
         public int stock_quantity { get; set; }
+        public DateTime? estimated_arrival_date { get; set; }
         public int moq { get; set; }
         public int sales_packing_standard { get; set; }
         public bool is_eop { get; set; }
         public string subtitute_product { get; set; }
-        public DateTime? estimated_arrival_date { get; set; }
 
     }
     public class StkPrice_false
@@ -87,15 +88,16 @@ namespace ApiService.Models
         public string customer_code { get; set; }
         public string part_no { get; set; }
         public string product_name { get; set; }
+        public string brand { get; set; }
         public string company { get; set; }
         public decimal structure_price { get; set; }
         public decimal special_price { get; set; }
         public decimal previous_price { get; set; }
+        public DateTime? estimated_arrival_date { get; set; }
         public int moq { get; set; }
         public int sales_packing_standard { get; set; }
         public bool is_eop { get; set; }
         public string subtitute_product { get; set; }
-        public DateTime? estimated_arrival_date { get; set; }
     }
     public class StkDeliveryHead<T>
     {

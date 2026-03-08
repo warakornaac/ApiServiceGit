@@ -16,6 +16,7 @@ using System.Data.SqlClient;
 using System.Web.Script.Serialization;
 using Newtonsoft.Json.Linq;
 using ApiService.Filters;
+using System.Globalization;
 
 namespace ApiService.Controllers
 {
@@ -56,7 +57,7 @@ namespace ApiService.Controllers
                             else
                             {
                                 //save data
-                                var statusApi = saveDataTracking(rowData.purchaseOrder, rowShipment.status_code, rowShipment.status);
+                                var statusApi = saveDataTracking(rowData.purchaseOrder, rowShipment.status_code, rowShipment.status, rowShipment.time_stamp);
                                 if (statusApi.ToString() == "Y")
                                 {
                                     purchaseOrderTxt = rowData.purchaseOrder;
@@ -89,12 +90,22 @@ namespace ApiService.Controllers
 
             return Json(dataRes);
         }
-        public object saveDataTracking(string purchaseOrder, int statusCode, string statusName)
+        public object saveDataTracking(string purchaseOrder, int statusCode, string statusName, string timeStamp)
         {
             var storedResult = string.Empty;
             var flagResult = string.Empty;
             var txtResult = string.Empty;
             var txtRespond = "Y";
+            DateTime? timeStampConv = null;
+
+            if (!string.IsNullOrWhiteSpace(timeStamp))
+            {
+                timeStampConv = DateTime.ParseExact(
+                    timeStamp,
+                    "dd/MM/yyyy HH:mm:ss",
+                    CultureInfo.InvariantCulture
+                );
+            }
             var connectionString = ConfigurationManager.ConnectionStrings["APIDB_ConnectionString"].ConnectionString;
             SqlConnection conn = new SqlConnection(connectionString);
             try
@@ -105,16 +116,13 @@ namespace ApiService.Controllers
                 cmd.Parameters.AddWithValue("@purchaseOrder", purchaseOrder);
                 cmd.Parameters.AddWithValue("@statusCode", statusCode);
                 cmd.Parameters.AddWithValue("@statusName", statusName);
+                cmd.Parameters.AddWithValue("@statusTimeStamp", timeStampConv);
 
                 SqlParameter p = new SqlParameter("@OutGenstatus", SqlDbType.NVarChar, 100);
                 p.Direction = ParameterDirection.Output;
                 cmd.Parameters.Add(p);
                 cmd.ExecuteNonQuery();
                 storedResult = cmd.Parameters["@OutGenstatus"].Value.ToString();
-                //if (!string.IsNullOrEmpty(storedResult))
-                //{
-
-                //}
                 cmd.Dispose();
             }
             catch (Exception ex)

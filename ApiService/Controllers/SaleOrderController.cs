@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Web.Http;
 using RouteAttribute = System.Web.Http.RouteAttribute;
 using Newtonsoft.Json;
@@ -8,6 +9,7 @@ using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
 using ApiService.Filters;
+using System.Net;
 
 namespace ApiService.Controllers
 {
@@ -97,7 +99,7 @@ namespace ApiService.Controllers
                         else
                         {
                             //save data
-                            var statusApi = saveDataOrder(rowData.Company, rowData.Cuscode, rowData.Stkcode, rowData.SalesPrice, rowData.Quantity, rowData.InsertBy, rowData.IsBargain.ToUpper());
+                            var statusApi = saveDataOrder(rowData.Company, rowData.Cuscode, rowData.Stkcode, rowData.SalesPrice, rowData.Reason, rowData.Quantity, rowData.InsertBy, rowData.IsBargain.ToUpper());
                             if (statusApi.ToString() == "Y")
                             {
                                 ++rowInsert;
@@ -138,7 +140,7 @@ namespace ApiService.Controllers
             return Json(dataRes);
         }
         //save data
-        public object saveDataOrder(string Company, string Cuscode, string Stkcode, string SalesPrice, int Quantity, string InsertBy, string IsBargain)
+        public object saveDataOrder(string Company, string Cuscode, string Stkcode, string SalesPrice, string Reason, int Quantity, string InsertBy, string IsBargain)
         {
             var storedResult = string.Empty;
             var flagResult = string.Empty;
@@ -156,6 +158,7 @@ namespace ApiService.Controllers
                 cmd.Parameters.AddWithValue("@Stkcode", Stkcode);
                 cmd.Parameters.AddWithValue("@SalesPrice", SalesPrice);
                 cmd.Parameters.AddWithValue("@Quantity", Quantity);
+                cmd.Parameters.AddWithValue("@Reason", Reason);
                 cmd.Parameters.AddWithValue("@IsBargain", IsBargain);
                 cmd.Parameters.AddWithValue("@InsertBy", InsertBy);
 
@@ -179,6 +182,74 @@ namespace ApiService.Controllers
             conn.Close();
             return txtRespond;
         }
+
+        [HttpPost]
+        [Route("SaleOrder/GetReason")]
+        [ApiKeyAuthorize]
+        public IHttpActionResult GetLookupBySubject()
+        {
+            string txtSubjectName = "SPC";
+            string txtSubjectDetail= "ListReasonForMobileSystem";
+            var responses = new List<ListLookup>();
+            var seenItemNos = new HashSet<string>();
+            string errorMessageTxt = "success";
+            var connectionString = ConfigurationManager.ConnectionStrings["APIDB_ConnectionString"].ConnectionString;
+            SqlConnection conn = new SqlConnection(connectionString);
+            var okresp = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                ReasonPhrase = "Success"
+            };
+            try
+            {
+                conn.Open();
+                SqlCommand cmd = new SqlCommand("P_Get_Lookup_Mobile", conn);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@inSubjectName", txtSubjectName);
+                SqlDataReader read = cmd.ExecuteReader();
+                while (read.Read())
+                {
+                    var Id = read["Id"] != DBNull.Value ? read["Id"].ToString() : "";
+                    var Description = read["Description"] != DBNull.Value ? read["Description"].ToString() : "";
+                    if (!string.IsNullOrEmpty(Id) && seenItemNos.Add(Description))
+                    {
+                        responses.Add(new ListLookup
+                        {
+                            Id = Id,
+                            Description = Description
+                        });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                errorMessageTxt = ex.Message.ToString();
+            }
+            DataRespondListLookup dataRes = new DataRespondListLookup();
+            dataRes.statusCode = Convert.ToInt32(okresp.StatusCode);
+            dataRes.errorMessage = errorMessageTxt;
+            dataRes.subjectName = txtSubjectDetail;
+            dataRes.result = responses;
+
+            String requestDataLog = JsonConvert.SerializeObject(txtSubjectDetail);
+            string jsonReturn = JsonConvert.SerializeObject(dataRes);
+
+            String lastId = _apiServerService.SaveApiResponse("SalesOrder/GetReason", requestDataLog.ToString(), "");
+            _apiServerService.UpdateApiRespone(lastId, jsonReturn.ToString());
+
+            return Json(dataRes);
+        }
+        public class ListLookup
+        {
+            public string Id{ get; set; }
+            public string Description { get; set; }
+        }
+        public class DataRespondListLookup
+        {
+            public int statusCode { get; set; }
+            public string errorMessage { get; set; }
+            public string subjectName { get; set; }
+            public List<ListLookup> result { get; set; }
+        }
         public class OrderData
         {
             public List<DataList> data { get; set; }
@@ -190,6 +261,7 @@ namespace ApiService.Controllers
             public string Stkcode { get; set; }
             public string SalesPrice { get; set; }
             public int Quantity { get; set; }
+            public string Reason { get; set; }
             public string IsBargain { get; set; }
             public string InsertBy { get; set; }
         }
