@@ -22,6 +22,25 @@ namespace ApiService.Models
         public string DeliveryId { get; set; }
         public string Urldetail { get; set; }
         public string User { get; set; }
+
+    }
+    public class SendPmApproved
+    {
+        public string Uid { get; set; }
+        public string Topic { get; set; }
+        public string Topiccod { get; set; }
+        public string Stkcod { get; set; }
+        public string Stkdes { get; set; }
+        public string SPrice { get; set; }
+        public string Qty { get; set; }
+        public string Cuscod { get; set; }
+        public string Cusname { get; set; }
+        public string ApprvDate { get; set; }
+        public string ApprvBy { get; set; }
+        // public string Urllink { get; set; }
+        public string User { get; set; }
+        public string Sta { get; set; }
+
     }
     public class SmsResponse
     {
