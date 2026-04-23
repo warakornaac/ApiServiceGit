@@ -14,12 +14,12 @@ using System.Threading.Tasks;
 using System.Web;
 using System.Web.Helpers;
 using System.Web.Http;
-using System.Web.Mvc;
 using ApiService.Controllers;
 using RouteAttribute = System.Web.Http.RouteAttribute;
 using System.Net;
 using System.Web.Http.Results;
 using Newtonsoft.Json.Linq;
+using System.IO;
 
 namespace ApiService.Controllers
 {
@@ -947,6 +947,90 @@ namespace ApiService.Controllers
             public List<OemNumber> OemNumbers { get; set; }
             public List<ArticleCriteria> ArticleCriteria { get; set; }
             public List<TradeNumberDetail> TradeNumberDetail { get; set; }
+        }
+        [HttpPost]
+        [Route("Techdoc/SaveImageFromUrl")]
+        public async Task<IHttpActionResult> SaveImageFromUrl([FromBody] SaveImageRequest req)
+        {
+            try
+            {
+                if (req == null || string.IsNullOrWhiteSpace(req.Url))
+                    return BadRequest("url is required");
+
+                var url = req.Url;
+                var folder = string.IsNullOrWhiteSpace(req.Folder) ? "Images" : req.Folder;
+
+                // domain
+                var uri = new Uri(url);
+                if (!uri.Host.Contains("tecalliance.services"))
+                {
+                    return Content(HttpStatusCode.BadRequest, new { Status = "Error", Message = "Domain not allowed" });
+                }
+
+                // folder
+                folder = folder.Replace("\\", "/").Trim('/');
+                if (folder.Contains(".."))
+                {
+                    return Content(HttpStatusCode.BadRequest, new { Status = "Error", Message = "Invalid folder path" });
+                }
+
+                var rootPath = HttpContext.Current.Server.MapPath("~/" + folder);
+
+                bool created = false;
+                if (!Directory.Exists(rootPath))
+                {
+                    Directory.CreateDirectory(rootPath);
+                    created = true;
+                }
+
+                var fileName = Path.GetFileName(uri.LocalPath);
+                if (string.IsNullOrWhiteSpace(fileName))
+                {
+                    fileName = Guid.NewGuid() + ".jpg";
+                }
+
+                fileName = Path.GetFileName(fileName);
+                var savePath = Path.Combine(rootPath, fileName);
+
+                System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
+
+                using (var http = new HttpClient())
+                {
+                    http.Timeout = TimeSpan.FromSeconds(15);
+
+                    var res = await http.GetAsync(url);
+                    if (!res.IsSuccessStatusCode)
+                    {
+                        return Content(HttpStatusCode.BadGateway, new { Status = "Error", Message = "Download failed" });
+                    }
+
+                    var bytes = await res.Content.ReadAsByteArrayAsync();
+                    System.IO.File.WriteAllBytes(savePath, bytes);
+                }
+
+                return Ok(new
+                {
+                    Status = "OK",
+                    FileName = fileName,
+                    Path = "/" + folder + "/" + fileName,
+                    Warning = created ? "Folder not found. Created automatically." : null
+                });
+            }
+            catch (Exception ex)
+            {
+                return Content(HttpStatusCode.InternalServerError,
+                new
+                {
+                    Status = "Error",
+                    Message = ex.Message,
+                    Detail = ex.InnerException?.Message
+                });
+            }
+        }
+        public class SaveImageRequest
+        {
+            public string Url { get; set; }
+            public string Folder { get; set; }
         }
     }
 }
