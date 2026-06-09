@@ -13,22 +13,6 @@ namespace ApiService.Filters
 {
     public class ApiKeyAuthorizeAttribute : AuthorizationFilterAttribute
     {
-        //private const string ApiKeyHeaderName = "ApiKey";
-        //public override void OnActionExecuting(HttpActionContext filterContext)
-        //{
-        //    var provider = filterContext.ControllerContext.Configuration.DependencyResolver.GetService(typeof(IApiKeyProvider)) as IApiKeyProvider;
-
-        //    IEnumerable<string> apiKeys;
-        //    filterContext.Request.Headers.TryGetValues(ApiKeyHeaderName, out apiKeys);
-
-        //    // Check API key
-        //    if (apiKeys == null || apiKeys.FirstOrDefault() != provider.GetApiKey())
-        //    {
-        //        filterContext.Response = new HttpResponseMessage(HttpStatusCode.Unauthorized);
-        //    }
-
-        //    base.OnActionExecuting(filterContext);
-        //}
         string txtResult = "";
         private const string ApiKeyHeaderNameUsername = "Username";
         private const string ApiKeyHeaderNamePassword = "Password";
@@ -52,6 +36,7 @@ namespace ApiService.Filters
                         //api pass
                         if (verifyApiKey == "Y")
                         {
+                            HttpContext.Current.Items["HeaderUserLogin"] = apiKeyHeaderUsernameValue;
                             return;
                         }
                         else  //api not pass

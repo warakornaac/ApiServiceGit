@@ -143,6 +143,7 @@ namespace ApiService.Models
     {
         public string customer_code { get; set; }
         public string customer_name { get; set; }
+        public string club { get; set; }
     }
 
     public class StkPrc
