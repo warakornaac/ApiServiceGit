@@ -190,6 +190,7 @@
     <Compile Include="Controllers\ItemsController.cs" />
     <Compile Include="Controllers\LineController.cs" />
     <Compile Include="Controllers\MasterEcatalogController.cs" />
+    <Compile Include="Controllers\ProductEcatalogController.cs" />
     <Compile Include="Controllers\SaleOrderController.cs" />
     <Compile Include="Controllers\ScgController.cs" />
     <Compile Include="Controllers\SmsController.cs" />
@@ -278,6 +279,7 @@
     <Folder Include="Views\Items\" />
     <Folder Include="Views\Line\" />
     <Folder Include="Views\MasterEcatalog\" />
+    <Folder Include="Views\ProductCatalog\" />
     <Folder Include="Views\SaleOrder\" />
     <Folder Include="Views\Sms\" />
     <Folder Include="Views\Techdoc\" />
