@@ -11,6 +11,7 @@ using RouteAttribute = System.Web.Http.RouteAttribute;
 using System.Web.Mvc;
 using HttpGetAttribute = System.Web.Http.HttpGetAttribute;
 using Newtonsoft.Json;
+using System.Data.Common;
 
 namespace ApiService.Controllers
 {
@@ -274,6 +275,197 @@ namespace ApiService.Controllers
 
             return Json(result);
         }
+
+        [HttpGet]
+        [Route("Ecatalog/GetBrands")]
+        [ApiKeyAuthorize]
+        public IHttpActionResult GetBrands(string brandId = "")
+        {
+            var responseList = new List<MasterbrandsDataResponse>();
+            string errorMessage = "Success";
+            try
+            {
+                string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    using(SqlCommand cmd = new SqlCommand("P_Get_Brands", conn))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.Add("@brandId", SqlDbType.VarChar, 50).Value = brandId;
+                        conn.Open();
+                        using (SqlDataReader dr = cmd.ExecuteReader())
+                        {
+                            while (dr.Read())
+                            {
+                                responseList.Add(new MasterbrandsDataResponse
+                                {
+                                    id = Convert.ToString(dr["brandId"]),
+                                    name = Convert.ToString(dr["brandName"]),
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch(Exception ex)
+            {
+                errorMessage = ex.Message;
+            }
+            var result = new
+            {
+                statusCode =
+                   errorMessage == "Success"
+                   ? 200
+                   : 500,
+
+                errorMessage,
+
+                result = responseList
+            };
+            var jsonLog = JsonConvert.SerializeObject(new
+            {
+                brandId = brandId,
+            });
+            string jsonReturn = JsonConvert.SerializeObject(result);
+            String lastId = _apiServerService.SaveApiResponse("Ecatalog/GetBrands", jsonLog, "");
+            _apiServerService.UpdateApiRespone(lastId, jsonReturn.ToString());
+
+            return Json(result);
+
+        }
+        [HttpGet]
+        [Route("Ecatalog/GetProductGroup")]
+        [ApiKeyAuthorize]
+        public IHttpActionResult GeProductGroups()
+        {
+            var responseList = new List<MasterCatProductGroupDataResponse>();
+            string errorMessage = "Success";
+            //if (string.IsNullOrWhiteSpace(cuscod))
+            //{
+            //    return Json(new
+            //    {
+            //        statusCode = 400,
+            //        errorMessage = "cuscod is required",
+            //        result = responseList
+            //    });
+            //}
+            try
+            {
+                string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    using (SqlCommand cmd = new SqlCommand("P_Get_CatProductGroup", conn))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        //cmd.Parameters.Add("@inCUSCOD", SqlDbType.VarChar, 50).Value = cuscod;
+                        conn.Open();
+                        using (SqlDataReader dr = cmd.ExecuteReader())
+                        {
+                            while (dr.Read())
+                            {
+                                responseList.Add(new MasterCatProductGroupDataResponse
+                                {
+                                    prodgrpid = Convert.ToString(dr["prodGrpId"]),
+                                    prodgrpname = Convert.ToString(dr["prodGrpName"])
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                errorMessage = ex.Message;
+            }
+            var result = new
+            {
+                statusCode =
+                   errorMessage == "Success"
+                   ? 200
+                   : 500,
+
+                errorMessage,
+
+                result = responseList
+            };
+            var jsonLog = JsonConvert.SerializeObject(new
+            {
+                //productLine = cuscod,
+            });
+            string jsonReturn = JsonConvert.SerializeObject(result);
+            String lastId = _apiServerService.SaveApiResponse("Ecatalog/GetProductGroup", jsonLog, "");
+            _apiServerService.UpdateApiRespone(lastId, jsonReturn.ToString());
+
+            return Json(result);
+        }
+
+        [HttpGet]
+        [Route("Ecatalog/GetProductLine")]
+        [ApiKeyAuthorize]
+        public IHttpActionResult GetProductLine(string prodGrpId = "0")
+        {
+            var responseList = new List<MasterCatProductGroupDataResponse>();
+            string errorMessage = "Success";
+            //if (string.IsNullOrWhiteSpace(cuscod))
+            //{
+            //    return Json(new
+            //    {
+            //        statusCode = 400,
+            //        errorMessage = "cuscod is required",
+            //        result = responseList
+            //    });
+            //}
+            try
+            {
+                string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    using (SqlCommand cmd = new SqlCommand("P_Get_CatProductLine", conn))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.Add("@inProdGrpId", SqlDbType.Int, 50).Value = int.Parse(prodGrpId); 
+                        conn.Open();
+                        using (SqlDataReader dr = cmd.ExecuteReader())
+                        {
+                            while (dr.Read())
+                            {
+                                responseList.Add(new MasterCatProductGroupDataResponse
+                                {
+                                    prodgrpid = Convert.ToString(dr["prodLineId"]),
+                                    prodgrpname = Convert.ToString(dr["prodLineName"])
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                errorMessage = ex.Message;
+            }
+            var result = new
+            {
+                statusCode =
+                   errorMessage == "Success"
+                   ? 200
+                   : 500,
+
+                errorMessage,
+
+                result = responseList
+            };
+            var jsonLog = JsonConvert.SerializeObject(new
+            {
+                prodGrpId = prodGrpId,
+            });
+            string jsonReturn = JsonConvert.SerializeObject(result);
+            String lastId = _apiServerService.SaveApiResponse("Ecatalog/GetProductLine", jsonLog, "");
+            _apiServerService.UpdateApiRespone(lastId, jsonReturn.ToString());
+
+            return Json(result);
+        }
+
+
         public class MasterMarkerDataResponse
         {
             public string Id { get; set; }
@@ -309,5 +501,28 @@ namespace ApiService.Controllers
             public string modelId { get; set; }
             public string bodyId { get; set; }
         }
+
+
+        public class MasterbrandsDataResponse
+        {
+            public string id { get; set; }
+            public string name { get; set; }
+        }
+        public class MasterCatProductGroupDataResponse
+        {
+            public string prodgrpid { get; set; }
+            public string prodgrpname { get; set; }
+        }
+        public class MasterCatProductLineDataResponse
+        {
+            public string prodlineid { get; set; }
+            public string prodlinename { get; set; }
+        }
+        public class MasterCatProductMatchDataResponse
+        {
+            public string prodgrpid { get; set; }
+            public string prodlineid { get; set; }
+        }
+
     }
 }
