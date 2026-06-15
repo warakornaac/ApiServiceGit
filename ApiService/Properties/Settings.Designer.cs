@@ -22,5 +22,32 @@ namespace ApiService.Properties {
                 return defaultInstance;
             }
         }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("client_credentials")]
+        public string WyzAuto_GrantType {
+            get {
+                return ((string)(this["WyzAuto_GrantType"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("YOUR_CLIENT_ID")]
+        public string WyzAuto_ClientId {
+            get {
+                return ((string)(this["WyzAuto_ClientId"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("YOUR_CLIENT_SECRET")]
+        public string WyzAuto_ClientSecret {
+            get {
+                return ((string)(this["WyzAuto_ClientSecret"]));
+            }
+        }
     }
 }

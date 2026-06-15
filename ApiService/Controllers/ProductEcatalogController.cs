@@ -232,6 +232,7 @@ namespace ApiService.Controllers
                                 price = dr["price"] == DBNull.Value ? "" : dr["price"].ToString(),
                                 productGroup = dr["productGroup"] == DBNull.Value ? "" : dr["productGroup"].ToString(),
                                 productLine = dr["productLine"] == DBNull.Value ? "" : dr["productLine"].ToString(),
+                                imagePath = dr["imagePath"] == DBNull.Value ? "" : dr["imagePath"].ToString(),
                             });
                     }
                 }
@@ -282,6 +283,85 @@ namespace ApiService.Controllers
                 });
             }
         }
+        //get count by tab
+        [HttpGet]
+        [Route("Ecatalog/GetTabItemCountProduct")]
+        [ApiKeyAuthorize]
+        public IHttpActionResult GetTabItemCountProduct(string stkcode) {
+            var responseList = new List<ProductTabItemCountDataResponse>();
+            string errorMessage = "Success";
+            if (string.IsNullOrWhiteSpace(stkcode)) {
+                return Json(new {
+                    statusCode = 400,
+                    errorMessage = "Stkcode is required",
+                    result = responseList
+                });
+            }
+
+            try {
+                string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand("P_Get_Product_Api_Count", conn)) {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add("@inStkcode", SqlDbType.VarChar, 50).Value = stkcode;
+                    conn.Open();
+                    using (SqlDataReader dr = cmd.ExecuteReader()) {
+                        while (dr.Read()) {
+                            responseList.Add(new ProductTabItemCountDataResponse {
+                                stkcode = dr["stkcode"] == DBNull.Value ? "" : dr["stkcode"].ToString(),
+                                stkcodeDescription = dr["stkcodeDescription"] == DBNull.Value ? "" : dr["stkcodeDescription"].ToString(),
+                                brandName = dr["brandName"] == DBNull.Value ? "" : dr["brandName"].ToString(),
+                                makerName = dr["makerName"] == DBNull.Value ? "" : dr["makerName"].ToString(),
+                                modelName = dr["modelName"] == DBNull.Value ? "" : dr["modelName"].ToString(),
+                                qtyReady = dr["qtyReady"] == DBNull.Value ? "" : dr["qtyReady"].ToString(),
+                                price = dr["price"] == DBNull.Value ? "" : dr["price"].ToString(),
+                                productGroup = dr["productGroup"] == DBNull.Value ? "" : dr["productGroup"].ToString(),
+                                productLine = dr["productLine"] == DBNull.Value ? "" : dr["productLine"].ToString(),
+                                imagePath = dr["imagePath"] == DBNull.Value ? "" : dr["imagePath"].ToString(),
+
+                                countProductDes = dr["countProductDes"] == DBNull.Value ? 0 : Convert.ToInt32(dr["countProductDes"]),
+                                countProductSpec = dr["countProductSpec"] == DBNull.Value ? 0 : Convert.ToInt32(dr["countProductSpec"]),
+                                countProductImage = dr["countProductImage"] == DBNull.Value ? 0 : Convert.ToInt32(dr["countProductImage"]),
+                                countProductOem = dr["countProductOem"] == DBNull.Value ? 0 : Convert.ToInt32(dr["countProductOem"]),
+                                countProductCom = dr["countProductCom"] == DBNull.Value ? 0 : Convert.ToInt32(dr["countProductCom"]),
+                                countProductLinkage = dr["countProductLinkage"] == DBNull.Value ? 0 : Convert.ToInt32(dr["countProductLinkage"])
+
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex) {
+                errorMessage = ex.Message;
+            }
+
+            var result = new {
+                statusCode =
+                    errorMessage == "Success"
+                    ? 200
+                    : 500,
+
+                errorMessage,
+
+                result = responseList
+            };
+            //keep log
+            //var requestLog = JsonConvert.SerializeObject(new {
+            //    stkcode = stkcode
+            //});
+
+            //var responseLog = JsonConvert.SerializeObject(result);
+
+            //String lastId = _apiServerService.SaveApiResponse(
+            //    "Ecatalog/GetTabItemCountProduct",
+            //    requestLog,
+            //    ""
+            //);
+
+            //_apiServerService.UpdateApiRespone(lastId, responseLog);
+
+            return Json(result);
+        }
         public class ProductKtypeDataResponse
         {
             public string marketSegmentId { get; set; }
@@ -307,6 +387,27 @@ namespace ApiService.Controllers
             public string price { get; set; }
             public string productGroup { get; set; }
             public string productLine { get; set; }
+            public string imagePath { get; set; }
+
+        }
+        public class ProductTabItemCountDataResponse
+        {
+            public string stkcode { get; set; }
+            public string stkcodeDescription { get; set; }
+            public string brandName { get; set; }
+            public string makerName { get; set; }
+            public string modelName { get; set; }
+            public string qtyReady { get; set; }
+            public string price { get; set; }
+            public string productGroup { get; set; }
+            public string productLine { get; set; }
+            public string imagePath { get; set; }
+            public int countProductDes { get; set; }
+            public int countProductSpec { get; set; }
+            public int countProductImage { get; set; }
+            public int countProductOem { get; set; }
+            public int countProductCom { get; set; }
+            public int countProductLinkage { get; set; }
         }
     }
 }
