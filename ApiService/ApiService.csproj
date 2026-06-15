@@ -64,9 +64,7 @@
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.DirectoryServices" />
     <Reference Include="System.Drawing" />
-
     <Reference Include="System.Web.DynamicData" />
-
     <Reference Include="System.Memory, Version=4.0.1.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Memory.4.5.3\lib\netstandard1.1\System.Memory.dll</HintPath>
     </Reference>
@@ -74,13 +72,12 @@
     <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=4.0.4.1, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.4.5.2\lib\netstandard1.0\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
     </Reference>
-
     <Reference Include="System.Web.Entity" />
     <Reference Include="System.Web.ApplicationServices" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
-    <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Web" />
     <Reference Include="System.Web.Abstractions" />
+    <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Web.Routing" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Configuration" />
@@ -194,6 +191,7 @@
     <Compile Include="Controllers\ItemsController.cs" />
     <Compile Include="Controllers\LineController.cs" />
     <Compile Include="Controllers\MasterEcatalogController.cs" />
+    <Compile Include="Controllers\ProductEcatalogController.cs" />
     <Compile Include="Controllers\SaleOrderController.cs" />
     <Compile Include="Controllers\ScgController.cs" />
     <Compile Include="Controllers\SmsController.cs" />
@@ -282,6 +280,7 @@
     <Folder Include="Views\Items\" />
     <Folder Include="Views\Line\" />
     <Folder Include="Views\MasterEcatalog\" />
+    <Folder Include="Views\ProductCatalog\" />
     <Folder Include="Views\SaleOrder\" />
     <Folder Include="Views\Sms\" />
     <Folder Include="Views\Techdoc\" />
