@@ -404,7 +404,7 @@ namespace ApiService.Controllers
         [ApiKeyAuthorize]
         public IHttpActionResult GetProductLine(string prodGrpId = "0")
         {
-            var responseList = new List<MasterCatProductGroupDataResponse>();
+            var responseList = new List<MasterCatProductLineDataResponse>();
             string errorMessage = "Success";
             //if (string.IsNullOrWhiteSpace(cuscod))
             //{
@@ -423,16 +423,16 @@ namespace ApiService.Controllers
                     using (SqlCommand cmd = new SqlCommand("P_Get_CatProductLine", conn))
                     {
                         cmd.CommandType = CommandType.StoredProcedure;
-                        cmd.Parameters.Add("@inProdGrpId", SqlDbType.Int, 50).Value = int.Parse(prodGrpId); 
+                        cmd.Parameters.Add("@inProdGrpId", SqlDbType.Int).Value = int.Parse(prodGrpId); 
                         conn.Open();
                         using (SqlDataReader dr = cmd.ExecuteReader())
                         {
                             while (dr.Read())
                             {
-                                responseList.Add(new MasterCatProductGroupDataResponse
+                                responseList.Add(new MasterCatProductLineDataResponse
                                 {
-                                    prodgrpid = Convert.ToString(dr["prodLineId"]),
-                                    prodgrpname = Convert.ToString(dr["prodLineName"])
+                                    prodlineid = Convert.ToString(dr["prodLineId"]),
+                                    prodlinename = Convert.ToString(dr["prodLineName"])
                                 });
                             }
                         }
@@ -465,6 +465,64 @@ namespace ApiService.Controllers
             return Json(result);
         }
 
+        [HttpGet]
+        [Route("Ecatalog/GetProductGroupMatched")]
+        [ApiKeyAuthorize]
+        public IHttpActionResult GetProductGroupMatched(string prodGrpId = "0", string prodLineId = "0")
+        {
+            var responseList = new List<ProductMatchDataResponse>();
+            string errorMessage = "Success";
+            try
+            {
+                string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    using (SqlCommand cmd = new SqlCommand("P_Get_ProductGrp_Match", conn))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.Add("@inProdGrpId", SqlDbType.Int).Value = prodGrpId;
+                        cmd.Parameters.Add("@inProdLineId", SqlDbType.Int).Value = prodLineId;
+                        conn.Open();
+                        using (SqlDataReader dr = cmd.ExecuteReader())
+                        {
+                            while (dr.Read())
+                            {
+                                responseList.Add(new ProductMatchDataResponse
+                                {
+                                    prodgrpid = Convert.ToString(dr["prodGrpId"]),
+                                    prodlineid = Convert.ToString(dr["prodLineId"])
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                errorMessage = ex.Message;
+            }
+            var result = new
+            {
+                statusCode =
+                   errorMessage == "Success"
+                   ? 200
+                   : 500,
+
+                errorMessage,
+
+                result = responseList
+            };
+            var jsonLog = JsonConvert.SerializeObject(new
+            {
+                prodGrpId = prodGrpId,
+                prodLineId = prodLineId,
+            });
+            string jsonReturn = JsonConvert.SerializeObject(result);
+            String lastId = _apiServerService.SaveApiResponse("Ecatalog/GetProductGroupMatched", jsonLog, "");
+            _apiServerService.UpdateApiRespone(lastId, jsonReturn.ToString());
+
+            return Json(result);
+        }
 
         public class MasterMarkerDataResponse
         {
@@ -518,11 +576,10 @@ namespace ApiService.Controllers
             public string prodlineid { get; set; }
             public string prodlinename { get; set; }
         }
-        public class MasterCatProductMatchDataResponse
+        public class ProductMatchDataResponse
         {
             public string prodgrpid { get; set; }
             public string prodlineid { get; set; }
         }
-
     }
 }
