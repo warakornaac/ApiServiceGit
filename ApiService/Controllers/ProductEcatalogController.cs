@@ -362,6 +362,424 @@ namespace ApiService.Controllers
 
             return Json(result);
         }
+        [HttpGet]
+        [Route("Ecatalog/GetTabDescription")]
+        [ApiKeyAuthorize]
+        public IHttpActionResult GetTabDescription(string stkcode) {
+            var responseList = new List<ProductTabDescriptionResponse>();
+            string errorMessage = "Success";
+            if (string.IsNullOrWhiteSpace(stkcode)) {
+                return Json(new {
+                    statusCode = 400,
+                    errorMessage = "Stkcode is required",
+                    result = responseList
+                });
+            }
+
+            try {
+                string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand("P_Get_Product_Description", conn)) {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add("@inStkcode", SqlDbType.VarChar, 50).Value = stkcode;
+                    conn.Open();
+                    using (SqlDataReader dr = cmd.ExecuteReader()) {
+                        while (dr.Read()) {
+                            responseList.Add(new ProductTabDescriptionResponse {
+                                stkcode = dr["Stkcode"] == DBNull.Value ? "" : dr["Stkcode"].ToString(),
+                                seqDescription = dr["SeqDescription"] == DBNull.Value ? 0 : Convert.ToInt32(dr["SeqDescription"]),
+                                title = dr["Title"] == DBNull.Value ? "" : dr["Title"].ToString(),
+                                description = dr["Description"] == DBNull.Value ? "" : dr["Description"].ToString(),
+                                insertedBy = dr["InsertedBy"] == DBNull.Value ? "" : dr["InsertedBy"].ToString(),
+                                insertedDate = dr["InsertedDate"] == DBNull.Value ? "" : dr["InsertedDate"].ToString(),
+                                updatedBy = dr["UpdatedBy"] == DBNull.Value ? "" : dr["UpdatedBy"].ToString(),
+                                updatedDate = dr["UpdatedDate"] == DBNull.Value ? "" : dr["UpdatedDate"].ToString()
+
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex) {
+                errorMessage = ex.Message;
+            }
+
+            var result = new {
+                statusCode =
+                    errorMessage == "Success"
+                    ? 200
+                    : 500,
+
+                errorMessage,
+
+                result = responseList
+            };
+            //keep log
+            //var requestLog = JsonConvert.SerializeObject(new {
+            //    stkcode = stkcode
+            //});
+
+            //var responseLog = JsonConvert.SerializeObject(result);
+
+            //String lastId = _apiServerService.SaveApiResponse(
+            //    "Ecatalog/GetTabDescription",
+            //    requestLog,
+            //    ""
+            //);
+
+            //_apiServerService.UpdateApiRespone(lastId, responseLog);
+
+            return Json(result);
+        }
+        [HttpGet]
+        [Route("Ecatalog/GetTabSpec")]
+        [ApiKeyAuthorize]
+        public IHttpActionResult GetTabSpec(string stkcode) {
+            var responseList = new List<ProductTabSpecResponse>();
+            string errorMessage = "Success";
+            if (string.IsNullOrWhiteSpace(stkcode)) {
+                return Json(new {
+                    statusCode = 400,
+                    errorMessage = "Stkcode is required",
+                    result = responseList
+                });
+            }
+
+            try {
+                string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand("P_Get_Product_Spec", conn)) {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add("@inStkcode", SqlDbType.VarChar, 50).Value = stkcode;
+                    conn.Open();
+                    using (SqlDataReader dr = cmd.ExecuteReader()) {
+                        while (dr.Read()) {
+                            responseList.Add(new ProductTabSpecResponse {
+                                stkcode = dr["Stkcode"] == DBNull.Value ? "" : dr["Stkcode"].ToString(),
+                                seqSpec = dr["SeqSpec"] == DBNull.Value ? 0 : Convert.ToInt32(dr["SeqSpec"]),
+                                title = dr["Title"] == DBNull.Value ? "" : dr["Title"].ToString(),
+                                description = dr["Description"] == DBNull.Value ? "" : dr["Description"].ToString(),
+                                insertedBy = dr["InsertedBy"] == DBNull.Value ? "" : dr["InsertedBy"].ToString(),
+                                insertedDate = dr["InsertedDate"] == DBNull.Value ? "" : dr["InsertedDate"].ToString(),
+                                updatedBy = dr["UpdatedBy"] == DBNull.Value ? "" : dr["UpdatedBy"].ToString(),
+                                updatedDate = dr["UpdatedDate"] == DBNull.Value ? "" : dr["UpdatedDate"].ToString()
+
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex) {
+                errorMessage = ex.Message;
+            }
+
+            var result = new {
+                statusCode =
+                    errorMessage == "Success"
+                    ? 200
+                    : 500,
+
+                errorMessage,
+
+                result = responseList
+            };
+            //keep log
+            //var requestLog = JsonConvert.SerializeObject(new {
+            //    stkcode = stkcode
+            //});
+
+            //var responseLog = JsonConvert.SerializeObject(result);
+
+            //String lastId = _apiServerService.SaveApiResponse(
+            //    "Ecatalog/GetTabSpec",
+            //    requestLog,
+            //    ""
+            //);
+
+            //_apiServerService.UpdateApiRespone(lastId, responseLog);
+
+            return Json(result);
+        }
+        [HttpGet]
+        [Route("Ecatalog/GetTabImage")]
+        [ApiKeyAuthorize]
+        public IHttpActionResult GetTabImage(string stkcode) {
+            var responseList = new List<ProductTabImageResponse>();
+            string errorMessage = "Success";
+            if (string.IsNullOrWhiteSpace(stkcode)) {
+                return Json(new {
+                    statusCode = 400,
+                    errorMessage = "Stkcode is required",
+                    result = responseList
+                });
+            }
+
+            try {
+                string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand("P_Get_Product_Image", conn)) {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add("@inStkcode", SqlDbType.VarChar, 50).Value = stkcode;
+                    conn.Open();
+                    using (SqlDataReader dr = cmd.ExecuteReader()) {
+                        while (dr.Read()) {
+                            responseList.Add(new ProductTabImageResponse {
+                                stkcode = dr["Stkcode"]?.ToString() ?? "",
+                                seqImage = dr["SeqImage"] == DBNull.Value ? 0 : Convert.ToInt32(dr["SeqImage"]),
+                                filename = dr["Filename"]?.ToString() ?? "",
+                                url = dr["Url"]?.ToString() ?? "",
+                                insertedBy = dr["InsertedBy"]?.ToString() ?? "",
+                                insertedDate = dr["InsertedDate"]?.ToString() ?? "",
+                                updatedBy = dr["UpdatedBy"]?.ToString() ?? "",
+                                updatedDate = dr["UpdatedDate"]?.ToString() ?? ""
+
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex) {
+                errorMessage = ex.Message;
+            }
+
+            var result = new {
+                statusCode =
+                    errorMessage == "Success"
+                    ? 200
+                    : 500,
+
+                errorMessage,
+
+                result = responseList
+            };
+            //keep log
+            //var requestLog = JsonConvert.SerializeObject(new {
+            //    stkcode = stkcode
+            //});
+
+            //var responseLog = JsonConvert.SerializeObject(result);
+
+            //String lastId = _apiServerService.SaveApiResponse(
+            //    "Ecatalog/GetTabImage",
+            //    requestLog,
+            //    ""
+            //);
+
+            //_apiServerService.UpdateApiRespone(lastId, responseLog);
+
+            return Json(result);
+        }
+        [HttpGet]
+        [Route("Ecatalog/GetTabOem")]
+        [ApiKeyAuthorize]
+        public IHttpActionResult GetTabOem(string stkcode) {
+            var responseList = new List<ProductTabOemResponse>();
+            string errorMessage = "Success";
+            if (string.IsNullOrWhiteSpace(stkcode)) {
+                return Json(new {
+                    statusCode = 400,
+                    errorMessage = "Stkcode is required",
+                    result = responseList
+                });
+            }
+
+            try {
+                string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand("P_Get_Product_Oem", conn)) {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add("@inStkcode", SqlDbType.VarChar, 50).Value = stkcode;
+                    conn.Open();
+                    using (SqlDataReader dr = cmd.ExecuteReader()) {
+                        while (dr.Read()) {
+                            responseList.Add(new ProductTabOemResponse {
+                                stkcode = dr["Stkcode"] == DBNull.Value ? "" : dr["Stkcode"].ToString(),
+                                seqOem = dr["SeqOem"] == DBNull.Value ? 0 : Convert.ToInt32(dr["SeqOem"]),
+                                oemNumber = dr["OemNumber"] == DBNull.Value ? "" : dr["OemNumber"].ToString(),
+                                makerName = dr["MakerName"] == DBNull.Value ? "" : dr["MakerName"].ToString(),
+                                insertedBy = dr["InsertedBy"] == DBNull.Value ? "" : dr["InsertedBy"].ToString(),
+                                insertedDate = dr["InsertedDate"] == DBNull.Value ? "" : dr["InsertedDate"].ToString(),
+                                updatedBy = dr["UpdatedBy"] == DBNull.Value ? "" : dr["UpdatedBy"].ToString(),
+                                updatedDate = dr["UpdatedDate"] == DBNull.Value ? "" : dr["UpdatedDate"].ToString()
+
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex) {
+                errorMessage = ex.Message;
+            }
+
+            var result = new {
+                statusCode =
+                    errorMessage == "Success"
+                    ? 200
+                    : 500,
+
+                errorMessage,
+
+                result = responseList
+            };
+            //keep log
+            //var requestLog = JsonConvert.SerializeObject(new {
+            //    stkcode = stkcode
+            //});
+
+            //var responseLog = JsonConvert.SerializeObject(result);
+
+            //String lastId = _apiServerService.SaveApiResponse(
+            //    "Ecatalog/GetTabOem",
+            //    requestLog,
+            //    ""
+            //);
+
+            //_apiServerService.UpdateApiRespone(lastId, responseLog);
+
+            return Json(result);
+        }
+        [HttpGet]
+        [Route("Ecatalog/GetTabCompetitor")]
+        [ApiKeyAuthorize]
+        public IHttpActionResult GetTabCompetitor(string stkcode) {
+            var responseList = new List<ProductTabCompetitorResponse>();
+            string errorMessage = "Success";
+            if (string.IsNullOrWhiteSpace(stkcode)) {
+                return Json(new {
+                    statusCode = 400,
+                    errorMessage = "Stkcode is required",
+                    result = responseList
+                });
+            }
+
+            try {
+                string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand("P_Get_Product_Competitor", conn)) {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add("@inStkcode", SqlDbType.VarChar, 50).Value = stkcode;
+                    conn.Open();
+                    using (SqlDataReader dr = cmd.ExecuteReader()) {
+                        while (dr.Read()) {
+                            responseList.Add(new ProductTabCompetitorResponse {
+                                stkcode = dr["Stkcode"] == DBNull.Value ? "" : dr["Stkcode"].ToString(),
+                                seqCompetitor = dr["SeqCompetitor"] == DBNull.Value ? 0 : Convert.ToInt32(dr["SeqCompetitor"]),
+                                partNo = dr["PartNo"] == DBNull.Value ? "" : dr["PartNo"].ToString(),
+                                brandName = dr["BrandName"] == DBNull.Value ? "" : dr["BrandName"].ToString(),
+                                insertedBy = dr["InsertedBy"] == DBNull.Value ? "" : dr["InsertedBy"].ToString(),
+                                insertedDate = dr["InsertedDate"] == DBNull.Value ? "" : dr["InsertedDate"].ToString(),
+                                updatedBy = dr["UpdatedBy"] == DBNull.Value ? "" : dr["UpdatedBy"].ToString(),
+                                updatedDate = dr["UpdatedDate"] == DBNull.Value ? "" : dr["UpdatedDate"].ToString()
+
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex) {
+                errorMessage = ex.Message;
+            }
+
+            var result = new {
+                statusCode =
+                    errorMessage == "Success"
+                    ? 200
+                    : 500,
+
+                errorMessage,
+
+                result = responseList
+            };
+            //keep log
+            //var requestLog = JsonConvert.SerializeObject(new {
+            //    stkcode = stkcode
+            //});
+
+            //var responseLog = JsonConvert.SerializeObject(result);
+
+            //String lastId = _apiServerService.SaveApiResponse(
+            //    "Ecatalog/GetTabCompetitor",
+            //    requestLog,
+            //    ""
+            //);
+
+            //_apiServerService.UpdateApiRespone(lastId, responseLog);
+
+            return Json(result);
+        }
+        [HttpGet]
+        [Route("Ecatalog/GetTabLinkage")]
+        [ApiKeyAuthorize]
+        public IHttpActionResult GetTabLinkage(string stkcode) {
+            var responseList = new List<ProductTabLinkageResponse>();
+            string errorMessage = "Success";
+            if (string.IsNullOrWhiteSpace(stkcode)) {
+                return Json(new {
+                    statusCode = 400,
+                    errorMessage = "Stkcode is required",
+                    result = responseList
+                });
+            }
+
+            try {
+                string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand("P_Get_LinkageData", conn)) {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add("@inSTKCOD", SqlDbType.VarChar, 50).Value = stkcode;
+                    conn.Open();
+                    using (SqlDataReader dr = cmd.ExecuteReader()) {
+                        while (dr.Read()) {
+                            responseList.Add(new ProductTabLinkageResponse {
+                                stkcode = dr["Stkcode"] == DBNull.Value ? "" : dr["Stkcode"].ToString(),
+                                seqLinkage = dr["SeqLinkage"] == DBNull.Value ? 0 : Convert.ToInt32(dr["SeqLinkage"]),
+                                kType = dr["KType"] == DBNull.Value ? "" : dr["KType"].ToString(),
+                                productId = dr["ProductId"] == DBNull.Value ? "" : dr["ProductId"].ToString(),
+                                truType = dr["TruType"] == DBNull.Value ? "" : dr["TruType"].ToString(),
+                                maker = dr["Maker"] == DBNull.Value ? "" : dr["Maker"].ToString(),
+                                model = dr["Model"] == DBNull.Value ? "" : dr["Model"].ToString(),
+                                body = dr["Body"] == DBNull.Value ? "" : dr["Body"].ToString(),
+                                engine = dr["Engine"] == DBNull.Value ? "" : dr["Engine"].ToString(),
+                                driveType = dr["DriveType"] == DBNull.Value ? "" : dr["DriveType"].ToString(),
+                                yearFrom = dr["YearFrom"] == DBNull.Value ? "" : dr["YearFrom"].ToString(),
+                                yearTo = dr["YearTo"] == DBNull.Value ? "" : dr["YearTo"].ToString()
+
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex) {
+                errorMessage = ex.Message;
+            }
+
+            var result = new {
+                statusCode =
+                    errorMessage == "Success"
+                    ? 200
+                    : 500,
+
+                errorMessage,
+
+                result = responseList
+            };
+            //keep log
+            //var requestLog = JsonConvert.SerializeObject(new {
+            //    stkcode = stkcode
+            //});
+
+            //var responseLog = JsonConvert.SerializeObject(result);
+
+            //String lastId = _apiServerService.SaveApiResponse(
+            //    "Ecatalog/GetTabLinkage",
+            //    requestLog,
+            //    ""
+            //);
+
+            //_apiServerService.UpdateApiRespone(lastId, responseLog);
+
+            return Json(result);
+        }
         public class ProductKtypeDataResponse
         {
             public string marketSegmentId { get; set; }
@@ -408,6 +826,76 @@ namespace ApiService.Controllers
             public int countProductOem { get; set; }
             public int countProductCom { get; set; }
             public int countProductLinkage { get; set; }
+        }
+        public class ProductTabDescriptionResponse
+        {
+            public string stkcode { get; set; }
+            public int seqDescription { get; set; }
+            public string title { get; set; }
+            public string description { get; set; }
+            public string insertedBy { get; set; }
+            public string insertedDate { get; set; }
+            public string updatedBy { get; set; }
+            public string updatedDate { get; set; }
+        }
+        public class ProductTabSpecResponse
+        {
+            public string stkcode { get; set; }
+            public int seqSpec { get; set; }
+            public string title { get; set; }
+            public string description { get; set; }
+            public string insertedBy { get; set; }
+            public string insertedDate { get; set; }
+            public string updatedBy { get; set; }
+            public string updatedDate { get; set; }
+        }
+        public class ProductTabImageResponse
+        {
+            public string stkcode { get; set; }
+            public int seqImage { get; set; }
+            public string filename { get; set; }
+            public string url { get; set; }
+            public string insertedBy { get; set; }
+            public string insertedDate { get; set; }
+            public string updatedBy { get; set; }
+            public string updatedDate { get; set; }
+        }
+        public class ProductTabOemResponse
+        {
+            public string stkcode { get; set; }
+            public int seqOem { get; set; }
+            public string oemNumber { get; set; }
+            public string makerName { get; set; }
+            public string insertedBy { get; set; }
+            public string insertedDate { get; set; }
+            public string updatedBy { get; set; }
+            public string updatedDate { get; set; }
+        }
+        public class ProductTabCompetitorResponse
+        {
+            public string stkcode { get; set; }
+            public int seqCompetitor { get; set; }
+            public string partNo { get; set; }
+            public string brandName { get; set; }
+            public string insertedBy { get; set; }
+            public string insertedDate { get; set; }
+            public string updatedBy { get; set; }
+            public string updatedDate { get; set; }
+        }
+        public class ProductTabLinkageResponse
+        {
+            public string stkcode { get; set; }
+            public int seqLinkage { get; set; }
+            public string kType { get; set; }
+            public string productId { get; set; }
+            public string truType { get; set; }
+            public string maker { get; set; }
+            public string model { get; set; }
+            public string body { get; set; }
+            public string engine { get; set; }
+            public string driveType { get; set; }
+            public string yearFrom { get; set; }
+            public string yearTo { get; set; }
         }
     }
 }
