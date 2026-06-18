@@ -8,7 +8,6 @@ using System.Linq;
 using System.Web;
 using System.Web.Http;
 using RouteAttribute = System.Web.Http.RouteAttribute;
-using System.Web.Mvc;
 using HttpGetAttribute = System.Web.Http.HttpGetAttribute;
 using Newtonsoft.Json;
 
@@ -21,144 +20,6 @@ namespace ApiService.Controllers
         public ProductEcatalogController() {
             _apiServerService = new ApiServerController();
         }
-        // GET: ProductCatalog
-        //[HttpGet]
-        //[Route("Ecatalog/GetKtypeByCar")]
-        //[ApiKeyAuthorize]
-        //public IHttpActionResult GetKtypeByCar(string marketSegmentId, string segmentId, string makerId, string rangeId, string bodyId, string engineId, string yearFrom, string yearTo, string driveType) {
-        //    var responseList = new List<ProductKtypeDataResponse>();
-        //    var ktypeList = new List<string>();
-        //    string errorMessage = "Success";
-        //    if (string.IsNullOrWhiteSpace(marketSegmentId) && string.IsNullOrWhiteSpace(segmentId) && string.IsNullOrWhiteSpace(makerId) && string.IsNullOrWhiteSpace(rangeId)) {
-        //        return Json(new {
-        //            statusCode = 400,
-        //            errorMessage = "marketSegmentId, segmentId, makerId or rangeId is required",
-        //            result = responseList
-        //        });
-        //    }
-        //    try {
-        //        string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
-        //        using (SqlConnection conn = new SqlConnection(connectionString))
-        //        using (SqlCommand cmd = new SqlCommand("P_Search_Ktype_By_Car", conn)) {
-        //            cmd.CommandType = CommandType.StoredProcedure;
-        //            cmd.Parameters.Add("@inMarketseId", SqlDbType.VarChar, 50).Value = marketSegmentId;
-        //            cmd.Parameters.Add("@inVehicleId", SqlDbType.VarChar, 50).Value = segmentId;
-        //            cmd.Parameters.Add("@inMakerId", SqlDbType.VarChar, 50).Value = makerId;
-        //            cmd.Parameters.Add("@inModelrangeId", SqlDbType.VarChar, 50).Value = "ALL";
-        //            cmd.Parameters.Add("@inModelId", SqlDbType.VarChar, 50).Value = rangeId;
-        //            cmd.Parameters.Add("@inBodyId", SqlDbType.VarChar, 50).Value = bodyId;
-        //            cmd.Parameters.Add("@inEngineId", SqlDbType.VarChar, 50).Value = engineId;
-        //            cmd.Parameters.Add("@inYearFrom", SqlDbType.VarChar, 50).Value = yearFrom;
-        //            cmd.Parameters.Add("@inYearTo", SqlDbType.VarChar, 50).Value = yearTo;
-        //            cmd.Parameters.Add("@inDriveType", SqlDbType.VarChar, 50).Value = driveType;
-        //            conn.Open();
-        //            using (SqlDataReader dr = cmd.ExecuteReader()) {
-        //                while (dr.Read()) {
-        //                    string ktypeTmp = dr["kType"] == DBNull.Value ? "" : dr["kType"].ToString();
-        //                    ktypeList.Add(ktypeTmp);
-        //                    responseList.Add(new ProductKtypeDataResponse {
-        //                        marketSegmentId = dr["marketSegmentId"] == DBNull.Value ? "" : dr["marketSegmentId"].ToString(),
-        //                        vehicleSegmentId = dr["vehicleSegmentId"] == DBNull.Value ? "" : dr["vehicleSegmentId"].ToString(),
-        //                        makerId = dr["makerId"] == DBNull.Value ? "" : dr["makerId"].ToString(),
-        //                        modelRangeId = dr["modelRangeId"] == DBNull.Value ? "" : dr["modelRangeId"].ToString(),
-        //                        modelId = dr["modelId"] == DBNull.Value ? "" : dr["modelId"].ToString(),
-        //                        bodyId = dr["bodyId"] == DBNull.Value ? "" : dr["bodyId"].ToString(),
-        //                        driveType = dr["driveType"] == DBNull.Value ? "" : dr["driveType"].ToString(),
-        //                        yearFrom = dr["yearFrom"] == DBNull.Value ? "" : dr["yearFrom"].ToString(),
-        //                        yearTo = dr["yearTo"] == DBNull.Value ? "" : dr["yearTo"].ToString(),
-        //                        kType = dr["kType"] == DBNull.Value ? "" : dr["kType"].ToString(),
-        //                        truType = dr["truType"] == DBNull.Value ? "" : dr["truType"].ToString()
-        //                    });
-        //                }
-        //            }
-        //        }
-        //    }
-        //    catch (Exception ex) {
-        //        errorMessage = ex.Message;
-        //    }
-        //    string ktypeConvert = string.Join(",", ktypeList.Distinct());
-        //    //var product = await GetProductByKtype(ktype.listKtype);
-        //    var result = new {
-        //        statusCode =
-        //            errorMessage == "Success"
-        //            ? 200
-        //            : 500,
-
-        //        errorMessage,
-
-        //        result = responseList
-        //    };
-        //    //var jsonLog = JsonConvert.SerializeObject(new {
-        //    //    moduleId = 3,
-        //    //    marketSegmentId = marketSegmentId,
-        //    //    segmentId = segmentId,
-        //    //    makerId = makerId
-        //    //});
-        //    //string jsonReturn = JsonConvert.SerializeObject(result);
-        //    //String lastId = _apiServerService.SaveApiResponse("Ecatalog/GetMarketCar", jsonLog, "");
-        //    //_apiServerService.UpdateApiRespone(lastId, jsonReturn.ToString());
-
-        //    return Json(result);
-        //}
-
-        //public IHttpActionResult GetProductByKtype(string listKtype) {
-        //    var responseList = new List<ProductDetailDataResponse>();
-        //    string errorMessage = "Success";
-        //    if (string.IsNullOrWhiteSpace(listKtype)) {
-        //        return Json(new {
-        //            statusCode = 400,
-        //            errorMessage = "listKtype is required",
-        //            result = responseList
-        //        });
-        //    }
-        //    try {
-        //        string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
-        //        using (SqlConnection conn = new SqlConnection(connectionString))
-        //        using (SqlCommand cmd = new SqlCommand("P_Search_Product_By_Ktype", conn)) {
-        //            cmd.CommandType = CommandType.StoredProcedure;
-        //            cmd.Parameters.Add("@inKtypeList", SqlDbType.VarChar, 50).Value = listKtype;
-        //            conn.Open();
-        //            using (SqlDataReader dr = cmd.ExecuteReader()) {
-        //                while (dr.Read()) {
-        //                    responseList.Add(new ProductDetailDataResponse {
-        //                        stkcode = dr["stkcode"] == DBNull.Value ? "" : dr["stkcode"].ToString(),
-        //                        description = dr["description"] == DBNull.Value ? "" : dr["description"].ToString(),
-        //                        brand = dr["brand"] == DBNull.Value ? "" : dr["brand"].ToString(),
-        //                        makerName = dr["makerName"] == DBNull.Value ? "" : dr["makerName"].ToString(),
-        //                        modelName = dr["modelName"] == DBNull.Value ? "" : dr["modelName"].ToString(),
-        //                        qtyReady = dr["qtyReady"] == DBNull.Value ? "" : dr["qtyReady"].ToString(),
-        //                        price = dr["price"] == DBNull.Value ? "" : dr["price"].ToString()
-        //                    });
-        //                }
-        //            }
-        //        }
-        //    }
-        //    catch (Exception ex) {
-        //        errorMessage = ex.Message;
-        //    }
-
-        //    var result = new {
-        //        statusCode =
-        //            errorMessage == "Success"
-        //            ? 200
-        //            : 500,
-
-        //        errorMessage,
-
-        //        result = responseList
-        //    };
-        //    //var jsonLog = JsonConvert.SerializeObject(new {
-        //    //    moduleId = 3,
-        //    //    marketSegmentId = marketSegmentId,
-        //    //    segmentId = segmentId,
-        //    //    makerId = makerId
-        //    //});
-        //    //string jsonReturn = JsonConvert.SerializeObject(result);
-        //    //String lastId = _apiServerService.SaveApiResponse("Ecatalog/GetMarketCar", jsonLog, "");
-        //    //_apiServerService.UpdateApiRespone(lastId, jsonReturn.ToString());
-
-        //    return Json(result);
-        //}
         //get kType
         private List<string> GetKtypeListByCar(string marketSegmentId, string segmentId, string makerId, string rangeId, string bodyId, string engineId, string yearFrom, string yearTo, string driveType) {
             List<string> ktypeList = new List<string>();
@@ -282,6 +143,173 @@ namespace ApiService.Controllers
                     result = new object[0]
                 });
             }
+        }
+        private DataTable BuildSearchCatagoryTable(ProductSearchCatagoryDataRequest request) {
+
+            DataTable dt = new DataTable();
+
+            dt.Columns.Add("CategoryFilterType", typeof(string));
+            dt.Columns.Add("CategoryFilterValue", typeof(string));
+
+            if (request.productGroupId != null) {
+                foreach (var item in request.productGroupId) {
+                    dt.Rows.Add("productGroupId", item);
+                }
+            }
+            if (request.productLineId != null) {
+                foreach (var item in request.productLineId) {
+                    dt.Rows.Add("productLineId", item);
+                }
+            }
+            if (request.brandId != null) {
+                foreach (var item in request.brandId) {
+                    dt.Rows.Add("brandId", item);
+                }
+            }
+            if (request.fittingFilter != null) {
+                foreach (var item in request.fittingFilter) {
+                    dt.Rows.Add("fittingFilter", item);
+                }
+            }
+
+            return dt;
+        }
+        [HttpPost]
+        [Route("Ecatalog/GetProductBySearchCatagory")]
+        [ApiKeyAuthorize]
+        public IHttpActionResult GetProductBySearchCatagory([FromBody] ProductSearchCatagoryDataRequest request) {
+            var responseList = new List<ProductSearchVioDataResponse>();
+
+            string errorMessage = "Success";
+
+            // Validate Request
+            if (request == null) {
+                return Json(new {
+                    statusCode = 400,
+                    errorMessage = "Request is required",
+                    result = responseList
+                });
+            }
+
+            if (
+                (request.productGroupId == null || !request.productGroupId.Any()) &&
+                (request.productLineId == null || !request.productLineId.Any()) &&
+                (request.brandId == null || !request.brandId.Any())
+            //(request.fittingFilter == null || !request.fittingFilter.Any())
+            ) {
+                return Json(new {
+                    statusCode = 400,
+                    errorMessage = "At least one filter is required",
+                    result = responseList
+                });
+            }
+
+            try {
+                DataTable tvp = BuildSearchCatagoryTable(request);
+                string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
+
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand("P_Search_Product_By_Catagory", conn)) {
+                    cmd.CommandType =
+                        CommandType.StoredProcedure;
+
+                    SqlParameter param =
+                        cmd.Parameters.AddWithValue(
+                            "@inCategoryFilter",
+                            tvp);
+
+                    param.SqlDbType =
+                        SqlDbType.Structured;
+
+                    param.TypeName =
+                        "dbo.CategoryFilterType";
+
+                    conn.Open();
+
+                    using (SqlDataReader dr =
+                        cmd.ExecuteReader()) {
+                        while (dr.Read()) {
+                            responseList.Add(
+                                new ProductSearchVioDataResponse {
+                                    stkcode =
+                                        dr["stkcode"] == DBNull.Value
+                                        ? ""
+                                        : dr["stkcode"].ToString(),
+
+                                    stkcodeDescription =
+                                        dr["stkcodeDescription"] == DBNull.Value
+                                        ? ""
+                                        : dr["stkcodeDescription"].ToString(),
+
+                                    brand =
+                                        dr["BrandName"] == DBNull.Value
+                                        ? ""
+                                        : dr["BrandName"].ToString(),
+
+                                    makerName =
+                                        dr["makerName"] == DBNull.Value
+                                        ? ""
+                                        : dr["makerName"].ToString(),
+
+                                    modelName =
+                                        dr["modelName"] == DBNull.Value
+                                        ? ""
+                                        : dr["modelName"].ToString(),
+
+                                    qtyReady =
+                                        dr["qtyReady"] == DBNull.Value
+                                        ? ""
+                                        : dr["qtyReady"].ToString(),
+
+                                    price =
+                                        dr["price"] == DBNull.Value
+                                        ? ""
+                                        : dr["price"].ToString(),
+
+                                    productGroup =
+                                        dr["productGroupName"] == DBNull.Value
+                                        ? ""
+                                        : dr["productGroupName"].ToString(),
+
+                                    productLine =
+                                        dr["productLineName"] == DBNull.Value
+                                        ? ""
+                                        : dr["productLineName"].ToString(),
+
+                                    imagePath =
+                                        dr["imagePath"] == DBNull.Value
+                                        ? ""
+                                        : dr["imagePath"].ToString()
+                                });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex) {
+                errorMessage = ex.Message;
+            }
+
+            var result = new {
+                statusCode =
+                    errorMessage == "Success"
+                    ? 200
+                    : 500,
+
+                errorMessage,
+
+                result = responseList
+            };
+
+            return Json(result);
+        }
+        [HttpPost]
+        [Route("Ecatalog/GetProductBySearchCatagoryPostman")]
+        [ApiKeyAuthorize]
+        public IHttpActionResult GetProductBySearchCatagoryPostman(ProductFilterRequest request) {
+            return Json(new {
+                IsSuccess = true,
+                Data = request.CategoryFilters
+            });
         }
         //get count by tab
         [HttpGet]
@@ -896,6 +924,28 @@ namespace ApiService.Controllers
             public string driveType { get; set; }
             public string yearFrom { get; set; }
             public string yearTo { get; set; }
+        }
+        //test postman
+        public class ProductFilterRequest
+        {
+            public List<ProductFilterItem> CategoryFilters { get; set; }
+        }
+        public class ProductFilterItem
+        {
+            public string CategoryFilterType { get; set; }
+
+            public string CategoryFilterValue { get; set; }
+        }
+
+        public class ProductSearchCatagoryDataRequest
+        {
+            public List<string> productGroupId { get; set; }
+
+            public List<string> productLineId { get; set; }
+
+            public List<string> brandId { get; set; }
+
+            public List<string> fittingFilter { get; set; }
         }
     }
 }
