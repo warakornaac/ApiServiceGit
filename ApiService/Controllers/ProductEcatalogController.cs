@@ -923,7 +923,7 @@ namespace ApiService.Controllers
                 return Json(new
                 {
                     statusCode = 400,
-                    errorMessage = "cuscod is required",
+                    errorMessage = "cuscode is required",
                     result = responseList
                 });
             }
