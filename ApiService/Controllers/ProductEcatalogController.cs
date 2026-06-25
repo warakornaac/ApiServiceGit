@@ -808,6 +808,108 @@ namespace ApiService.Controllers
 
             return Json(result);
         }
+
+
+        [HttpPost]
+        [Route("Ecatalog/AddProductToCart")]
+        [ApiKeyAuthorize]
+        public IHttpActionResult AddProductToCart(string cuscod, string stkcod, string company, string price, string qty,string usrname, string bkorder = "0", string moq ="1" )
+        {
+
+            //var responseList = new List<ProductTabLinkageResponse>();
+            string errorMessage = "Success";
+            if (string.IsNullOrWhiteSpace(cuscod))
+            {
+                return Json(new
+                {
+                    statusCode = 400,
+                    errorMessage = "Cuscod is required",
+                    result = ""
+                });
+            }
+            if (string.IsNullOrWhiteSpace(stkcod))
+            {
+                return Json(new
+                {
+                    statusCode = 400,
+                    errorMessage = "Stkcode is required",
+                    result = ""
+                });
+            }
+            if (string.IsNullOrWhiteSpace(price))
+            {
+                return Json(new
+                {
+                    statusCode = 400,
+                    errorMessage = "Price is required",
+                    result = ""
+                });
+            }
+            if (string.IsNullOrWhiteSpace(qty))
+            {
+                return Json(new
+                {
+                    statusCode = 400,
+                    errorMessage = "Qty is required",
+                    result = ""
+                });
+            }
+            try
+            {
+                string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand("p_SaveOrderCart", conn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add("@Customer", SqlDbType.VarChar, 50).Value = cuscod;
+                    cmd.Parameters.Add("@STKCOD", SqlDbType.VarChar, 50).Value = stkcod;
+                    cmd.Parameters.Add("@Company", SqlDbType.VarChar, 50).Value = company;
+
+                    cmd.Parameters.Add("@Price", SqlDbType.Decimal).Value = price;
+                    cmd.Parameters.Add("@SPrice", SqlDbType.Decimal).Value = 0.0;
+                    cmd.Parameters.Add("@Expect_Price", SqlDbType.Decimal).Value = 0.0;
+                    cmd.Parameters.Add("@specprice", SqlDbType.Decimal).Value = 0.0;
+                    cmd.Parameters.Add("@promoprice", SqlDbType.Decimal).Value = 0.0;
+                    cmd.Parameters.Add("@lastinvprice", SqlDbType.Decimal).Value = 0.0;
+
+                    cmd.Parameters.Add("@Qty", SqlDbType.Int).Value = qty;
+                    cmd.Parameters.Add("@Bckorder", SqlDbType.Int).Value = bkorder;
+                    cmd.Parameters.Add("@InsertedBy", SqlDbType.VarChar, 50).Value = usrname;
+                    cmd.Parameters.Add("@LineNote", SqlDbType.VarChar, 50).Value = "";
+
+                    cmd.Parameters.Add("@ProCode", SqlDbType.VarChar, 50).Value = "";
+                    cmd.Parameters.Add("@minord", SqlDbType.Int).Value = moq;
+                    cmd.Parameters.Add("@FOC", SqlDbType.Int).Value = 0;
+                    
+                    cmd.Parameters.Add("@prclstno", SqlDbType.VarChar).Value = "";
+                    cmd.Parameters.Add("@promodesc", SqlDbType.VarChar).Value = "";
+                    cmd.Parameters.Add("@lastinvdate", SqlDbType.VarChar).Value = "";
+                    cmd.Parameters.Add("@sop", SqlDbType.VarChar).Value = "";
+
+                    conn.Open();
+                    cmd.ExecuteNonQuery();
+
+                }
+            }
+            catch (Exception ex)
+            {
+                errorMessage = ex.Message;
+            }
+            var result = new
+            {
+                statusCode =
+               errorMessage == "Success"
+               ? 200
+               : 500,
+
+                errorMessage,
+
+                result = ""
+            };
+
+
+            return Json(result);
+        }
         public class ProductKtypeDataResponse
         {
             public string marketSegmentId { get; set; }
