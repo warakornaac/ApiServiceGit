@@ -581,5 +581,6 @@ namespace ApiService.Controllers
             public string prodgrpid { get; set; }
             public string prodlineid { get; set; }
         }
+
     }
 }
