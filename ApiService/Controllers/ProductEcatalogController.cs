@@ -808,6 +808,196 @@ namespace ApiService.Controllers
 
             return Json(result);
         }
+
+
+        [HttpPost]
+        [Route("Ecatalog/AddProductToCart")]
+        [ApiKeyAuthorize]
+        public IHttpActionResult AddProductToCart(string cuscod, string stkcod, string company, string price, string qty,string usrname, string bkorder = "0", string moq ="1" )
+        {
+
+            //var responseList = new List<ProductTabLinkageResponse>();
+            string errorMessage = "Success";
+            if (string.IsNullOrWhiteSpace(cuscod))
+            {
+                return Json(new
+                {
+                    statusCode = 400,
+                    errorMessage = "Cuscod is required",
+                    result = ""
+                });
+            }
+            if (string.IsNullOrWhiteSpace(stkcod))
+            {
+                return Json(new
+                {
+                    statusCode = 400,
+                    errorMessage = "Stkcode is required",
+                    result = ""
+                });
+            }
+            if (string.IsNullOrWhiteSpace(price))
+            {
+                return Json(new
+                {
+                    statusCode = 400,
+                    errorMessage = "Price is required",
+                    result = ""
+                });
+            }
+            if (string.IsNullOrWhiteSpace(qty))
+            {
+                return Json(new
+                {
+                    statusCode = 400,
+                    errorMessage = "Qty is required",
+                    result = ""
+                });
+            }
+            try
+            {
+                string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand("p_SaveOrderCart", conn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add("@Customer", SqlDbType.VarChar, 50).Value = cuscod;
+                    cmd.Parameters.Add("@STKCOD", SqlDbType.VarChar, 50).Value = stkcod;
+                    cmd.Parameters.Add("@Company", SqlDbType.VarChar, 50).Value = company;
+
+                    cmd.Parameters.Add("@Price", SqlDbType.Decimal).Value = price;
+                    cmd.Parameters.Add("@SPrice", SqlDbType.Decimal).Value = 0.0;
+                    cmd.Parameters.Add("@Expect_Price", SqlDbType.Decimal).Value = 0.0;
+                    cmd.Parameters.Add("@specprice", SqlDbType.Decimal).Value = 0.0;
+                    cmd.Parameters.Add("@promoprice", SqlDbType.Decimal).Value = 0.0;
+                    cmd.Parameters.Add("@lastinvprice", SqlDbType.Decimal).Value = 0.0;
+
+                    cmd.Parameters.Add("@Qty", SqlDbType.Int).Value = qty;
+                    cmd.Parameters.Add("@Bckorder", SqlDbType.Int).Value = bkorder;
+                    cmd.Parameters.Add("@InsertedBy", SqlDbType.VarChar, 50).Value = usrname;
+                    cmd.Parameters.Add("@LineNote", SqlDbType.VarChar, 50).Value = "";
+
+                    cmd.Parameters.Add("@ProCode", SqlDbType.VarChar, 50).Value = "";
+                    cmd.Parameters.Add("@minord", SqlDbType.Int).Value = moq;
+                    cmd.Parameters.Add("@FOC", SqlDbType.Int).Value = 0;
+                    
+                    cmd.Parameters.Add("@prclstno", SqlDbType.VarChar).Value = "";
+                    cmd.Parameters.Add("@promodesc", SqlDbType.VarChar).Value = "";
+                    cmd.Parameters.Add("@lastinvdate", SqlDbType.VarChar).Value = "";
+                    cmd.Parameters.Add("@sop", SqlDbType.VarChar).Value = "";
+
+                    conn.Open();
+                    cmd.ExecuteNonQuery();
+
+                }
+            }
+            catch (Exception ex)
+            {
+                errorMessage = ex.Message;
+            }
+            var result = new
+            {
+                statusCode =
+               errorMessage == "Success"
+               ? 200
+               : 500,
+
+                errorMessage,
+
+                result = ""
+            };
+
+
+            return Json(result);
+        }
+
+        [HttpGet]
+        [Route("Ecatalog/GetProductToCart")]
+        [ApiKeyAuthorize]
+        public IHttpActionResult GetProductToCart(string cuscode, string usrname)
+        {
+            var responseList = new List<OrderCartProductResponse>();
+            string errorMessage = "Success";
+            if (string.IsNullOrWhiteSpace(cuscode))
+            {
+                return Json(new
+                {
+                    statusCode = 400,
+                    errorMessage = "cuscode is required",
+                    result = responseList
+                });
+            }
+            if (string.IsNullOrWhiteSpace(usrname))
+            {
+                return Json(new
+                {
+                    statusCode = 400,
+                    errorMessage = "usrname is required",
+                    result = responseList
+                });
+            }
+
+            try
+            {
+                string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand("P_ShoppingCart_list_Catalog", conn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add("@inCUSCOD", SqlDbType.VarChar, 50).Value = cuscode;
+                    cmd.Parameters.Add("@usrlogin", SqlDbType.VarChar, 50).Value = usrname;
+                    conn.Open();
+                    using (SqlDataReader dr = cmd.ExecuteReader())
+                    {
+                        while (dr.Read())
+                        {
+                            responseList.Add(new OrderCartProductResponse
+                            {
+                                id = dr["id"] == DBNull.Value ? "" : dr["id"].ToString(),
+                                company = dr["Company"] == DBNull.Value ? "" : dr["Company"].ToString(),
+                                cuscod = dr["CUSCOD"] == DBNull.Value ? "" : dr["CUSCOD"].ToString(),
+                                stkcod = dr["STKCOD"] == DBNull.Value ? "" : dr["STKCOD"].ToString(),
+                                stkdes = dr["STKDES"] == DBNull.Value ? "" : dr["STKDES"].ToString(),
+                                stkgrp = dr["STKGRP"] == DBNull.Value ? "" : dr["STKGRP"].ToString(),
+                                minord = dr["MINORD"] == DBNull.Value ? "" : dr["MINORD"].ToString(),
+                                price = dr["Price"] == DBNull.Value ? "" : dr["Price"].ToString(),
+                                backOrder = dr["BackOrder"] == DBNull.Value ? "" : dr["BackOrder"].ToString(),
+                                qty = dr["Qty"] == DBNull.Value ? "" : dr["Qty"].ToString(),
+                                amt = dr["Amt"] == DBNull.Value ? "" : dr["Amt"].ToString(),
+                                uom = dr["UOM"] == DBNull.Value ? "" : dr["UOM"].ToString(),
+                                status = dr["Status"] == DBNull.Value ? "" : dr["Status"].ToString(),
+                                orddat = dr["ORDDAT"] == DBNull.Value ? "" : dr["ORDDAT"].ToString(),
+                                
+                                insertedBy = dr["Inserted By"] == DBNull.Value ? "" : dr["Inserted By"].ToString(),
+                                insertedDate = dr["Inserted Date"] == DBNull.Value ? "" : dr["Inserted Date"].ToString(),
+                                updatedBy = dr["Updated By"] == DBNull.Value ? "" : dr["Updated By"].ToString(),
+                                updatedDate = dr["Updated Date"] == DBNull.Value ? "" : dr["Updated Date"].ToString(),
+                                imagePath = dr["imagePath"] == DBNull.Value ? "" : dr["imagePath"].ToString()
+                                
+
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                errorMessage = ex.Message;
+            }
+
+            var result = new
+            {
+                statusCode =
+                    errorMessage == "Success"
+                    ? 200
+                    : 500,
+
+                errorMessage,
+
+                result = responseList
+            };
+            return Json(result);
+        }
         public class ProductKtypeDataResponse
         {
             public string marketSegmentId { get; set; }
@@ -946,6 +1136,29 @@ namespace ApiService.Controllers
             public List<string> brandId { get; set; }
 
             public List<string> fittingFilter { get; set; }
+        }
+        public class OrderCartProductResponse
+        {
+            public string id { get; set; }
+            public string company { get; set; }
+            public string cuscod { get; set; }
+            public string orddat { get; set; }
+            public string stkcod { get; set; }
+            public string stkdes { get; set; } 
+            public string stkgrp { get; set; }
+            public string minord { get; set; }
+            public string price { get; set; }
+            public string backOrder { get; set; }
+            public string qty { get; set; }
+            public string amt { get; set; }
+            public string uom { get; set; }
+            public string status { get; set; }
+            public string insertedDate { get; set; }
+            public string insertedBy { get; set; }
+            public string updatedDate { get; set; }
+            public string updatedBy { get; set; }
+            public string imagePath { get; set; }
+
         }
     }
 }
