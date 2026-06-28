@@ -126,7 +126,7 @@ namespace ApiService.Controllers
         ///// </summary>
         public async Task<string> sendUpdateProductTyreplus()
         {
-            string url = "https://partner.platform.wyzauto.dev/v1/partner/offers:upload";
+            string url = "https://partner.platform.wyzauto.dev/v1/partner/offers:import";
             // ดึงข้อมูลทั้งหมด
             var productList = await GetProductTyreplusData();
             Guid batchId = Guid.NewGuid(); //เพื่อดู log การรัน batch
@@ -153,7 +153,7 @@ namespace ApiService.Controllers
                             offers = batch.Select(x => new
                             {
                                 product_id = x.ProductId,
-                                seller_sku_id = "",
+                                //seller_sku_id = "0",
                                 warehouse_id = x.WarehouseId,
                                 base_price = x.BasePrice,
                                 stock = x.Stock,
