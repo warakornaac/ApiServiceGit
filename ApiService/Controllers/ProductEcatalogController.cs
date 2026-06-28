@@ -231,55 +231,16 @@ namespace ApiService.Controllers
                         while (dr.Read()) {
                             responseList.Add(
                                 new ProductSearchVioDataResponse {
-                                    stkcode =
-                                        dr["stkcode"] == DBNull.Value
-                                        ? ""
-                                        : dr["stkcode"].ToString(),
-
-                                    stkcodeDescription =
-                                        dr["stkcodeDescription"] == DBNull.Value
-                                        ? ""
-                                        : dr["stkcodeDescription"].ToString(),
-
-                                    brand =
-                                        dr["BrandName"] == DBNull.Value
-                                        ? ""
-                                        : dr["BrandName"].ToString(),
-
-                                    makerName =
-                                        dr["makerName"] == DBNull.Value
-                                        ? ""
-                                        : dr["makerName"].ToString(),
-
-                                    modelName =
-                                        dr["modelName"] == DBNull.Value
-                                        ? ""
-                                        : dr["modelName"].ToString(),
-
-                                    qtyReady =
-                                        dr["qtyReady"] == DBNull.Value
-                                        ? ""
-                                        : dr["qtyReady"].ToString(),
-
-                                    price =
-                                        dr["price"] == DBNull.Value
-                                        ? ""
-                                        : dr["price"].ToString(),
-
-                                    productGroup =
-                                        dr["productGroupName"] == DBNull.Value
-                                        ? ""
-                                        : dr["productGroupName"].ToString(),
-
-                                    productLine =
-                                        dr["productLineName"] == DBNull.Value
-                                        ? ""
-                                        : dr["productLineName"].ToString(),
-
-                                    imagePath =
-                                        dr["imagePath"] == DBNull.Value
-                                        ? ""
-                                        : dr["imagePath"].ToString()
+                                    stkcode = dr["stkcode"] == DBNull.Value ? "" : dr["stkcode"].ToString(),
+                                    stkcodeDescription = dr["stkcodeDescription"] == DBNull.Value ? "" : dr["stkcodeDescription"].ToString(),
+                                    brand = dr["BrandName"] == DBNull.Value ? "" : dr["BrandName"].ToString(),
+                                    makerName = dr["makerName"] == DBNull.Value ? "" : dr["makerName"].ToString(),
+                                    modelName = dr["modelName"] == DBNull.Value ? "" : dr["modelName"].ToString(),
+                                    qtyReady = dr["qtyReady"] == DBNull.Value ? "" : dr["qtyReady"].ToString(),
+                                    price = dr["price"] == DBNull.Value ? "" : dr["price"].ToString(),
+                                    productGroup = dr["productGroupName"] == DBNull.Value ? "" : dr["productGroupName"].ToString(),
+                                    productLine = dr["productLineName"] == DBNull.Value ? "" : dr["productLineName"].ToString(),
+                                    imagePath = dr["imagePath"] == DBNull.Value ? "" : dr["imagePath"].ToString()
                                 });
                         }
                     }
@@ -310,6 +271,111 @@ namespace ApiService.Controllers
                 IsSuccess = true,
                 Data = request.CategoryFilters
             });
+        }
+        private DataTable BuildSearchFieldTable(ProductSearchFieldDataRequest request) {
+            DataTable dt = new DataTable();
+
+            dt.Columns.Add("SearchField", typeof(string));
+
+            if (request.searchFields != null) {
+                foreach (var item in request.searchFields) {
+                    dt.Rows.Add(item);
+                }
+            }
+
+            return dt;
+        }
+        [HttpPost]
+        [Route("Ecatalog/GetProductBySearchField")]
+        [ApiKeyAuthorize]
+        public IHttpActionResult GetProductBySearchField([FromBody] ProductSearchFieldDataRequest request) {
+            var responseList = new List<ProductSearchVioDataResponse>();
+
+            string errorMessage = "Success";
+
+            if (request == null) {
+                return Json(new {
+                    statusCode = 400,
+                    errorMessage = "Request is null",
+                    result = responseList
+                });
+            }
+
+            if (String.IsNullOrWhiteSpace(request.searchText)) {
+                return Json(new {
+                    statusCode = 400,
+                    errorMessage = "SearchText is required",
+                    result = responseList
+                });
+            }
+
+            if (request.searchFields == null ||
+                !request.searchFields.Any()) {
+                return Json(new {
+                    statusCode = 400,
+                    errorMessage = "SearchFields is required",
+                    result = responseList
+                });
+            }
+
+            try {
+                DataTable tvp = BuildSearchFieldTable(request);
+                string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
+
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand("P_Search_Product_By_Field", conn)) {
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    //----------------------------------------
+                    // Search Text
+                    //----------------------------------------
+
+                    cmd.Parameters.Add("@inSearchText", SqlDbType.VarChar, 200).Value = request.searchText;
+
+                    //----------------------------------------
+                    // TVP
+                    //----------------------------------------
+                    SqlParameter tvpParam = cmd.Parameters.AddWithValue("@inSearchField", tvp);
+                    tvpParam.SqlDbType = SqlDbType.Structured;
+                    tvpParam.TypeName = "dbo.SearchFieldType";
+                    conn.Open();
+
+                    using (SqlDataReader dr = cmd.ExecuteReader()) {
+                        while (dr.Read()) {
+                            responseList.Add(
+                                new ProductSearchVioDataResponse {
+                                    stkcode = dr["stkcode"] == DBNull.Value ? "" : dr["stkcode"].ToString(),
+                                    stkcodeDescription = dr["stkcodeDescription"] == DBNull.Value ? "" : dr["stkcodeDescription"].ToString(),
+                                    brand = dr["BrandName"] == DBNull.Value ? "" : dr["BrandName"].ToString(),
+                                    makerName = dr["makerName"] == DBNull.Value ? "" : dr["makerName"].ToString(),
+                                    modelName = dr["modelName"] == DBNull.Value ? "" : dr["modelName"].ToString(),
+                                    qtyReady = dr["qtyReady"] == DBNull.Value ? "" : dr["qtyReady"].ToString(),
+                                    price = dr["price"] == DBNull.Value ? "" : dr["price"].ToString(),
+                                    productGroup = dr["productGroupName"] == DBNull.Value ? "" : dr["productGroupName"].ToString(),
+                                    productLine = dr["productLineName"] == DBNull.Value ? "" : dr["productLineName"].ToString(),
+                                    imagePath = dr["imagePath"] == DBNull.Value ? "" : dr["imagePath"].ToString()
+                                });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex) {
+                errorMessage = ex.Message;
+            }
+
+            var result = new {
+                statusCode =
+                    errorMessage == "Success"
+                    ? 200
+                    : 500,
+
+                errorMessage,
+
+                result = responseList
+            };
+            var json = JsonConvert.SerializeObject(responseList);
+            System.Diagnostics.Debug.WriteLine(json);
+            return Json(result);
         }
         //get count by tab
         [HttpGet]
@@ -813,53 +879,42 @@ namespace ApiService.Controllers
         [HttpPost]
         [Route("Ecatalog/AddProductToCart")]
         [ApiKeyAuthorize]
-        public IHttpActionResult AddProductToCart(string cuscod, string stkcod, string company, string price, string qty,string usrname, string bkorder = "0", string moq ="1" )
-        {
+        public IHttpActionResult AddProductToCart(string cuscod, string stkcod, string company, string price, string qty, string usrname, string bkorder = "0", string moq = "1") {
 
             //var responseList = new List<ProductTabLinkageResponse>();
             string errorMessage = "Success";
-            if (string.IsNullOrWhiteSpace(cuscod))
-            {
-                return Json(new
-                {
+            if (string.IsNullOrWhiteSpace(cuscod)) {
+                return Json(new {
                     statusCode = 400,
                     errorMessage = "Cuscod is required",
                     result = ""
                 });
             }
-            if (string.IsNullOrWhiteSpace(stkcod))
-            {
-                return Json(new
-                {
+            if (string.IsNullOrWhiteSpace(stkcod)) {
+                return Json(new {
                     statusCode = 400,
                     errorMessage = "Stkcode is required",
                     result = ""
                 });
             }
-            if (string.IsNullOrWhiteSpace(price))
-            {
-                return Json(new
-                {
+            if (string.IsNullOrWhiteSpace(price)) {
+                return Json(new {
                     statusCode = 400,
                     errorMessage = "Price is required",
                     result = ""
                 });
             }
-            if (string.IsNullOrWhiteSpace(qty))
-            {
-                return Json(new
-                {
+            if (string.IsNullOrWhiteSpace(qty)) {
+                return Json(new {
                     statusCode = 400,
                     errorMessage = "Qty is required",
                     result = ""
                 });
             }
-            try
-            {
+            try {
                 string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
                 using (SqlConnection conn = new SqlConnection(connectionString))
-                using (SqlCommand cmd = new SqlCommand("p_SaveOrderCart", conn))
-                {
+                using (SqlCommand cmd = new SqlCommand("p_SaveOrderCart", conn)) {
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.Add("@Customer", SqlDbType.VarChar, 50).Value = cuscod;
                     cmd.Parameters.Add("@STKCOD", SqlDbType.VarChar, 50).Value = stkcod;
@@ -880,7 +935,7 @@ namespace ApiService.Controllers
                     cmd.Parameters.Add("@ProCode", SqlDbType.VarChar, 50).Value = "";
                     cmd.Parameters.Add("@minord", SqlDbType.Int).Value = moq;
                     cmd.Parameters.Add("@FOC", SqlDbType.Int).Value = 0;
-                    
+
                     cmd.Parameters.Add("@prclstno", SqlDbType.VarChar).Value = "";
                     cmd.Parameters.Add("@promodesc", SqlDbType.VarChar).Value = "";
                     cmd.Parameters.Add("@lastinvdate", SqlDbType.VarChar).Value = "";
@@ -891,12 +946,10 @@ namespace ApiService.Controllers
 
                 }
             }
-            catch (Exception ex)
-            {
+            catch (Exception ex) {
                 errorMessage = ex.Message;
             }
-            var result = new
-            {
+            var result = new {
                 statusCode =
                errorMessage == "Success"
                ? 200
@@ -914,45 +967,35 @@ namespace ApiService.Controllers
         [HttpGet]
         [Route("Ecatalog/GetProductToCart")]
         [ApiKeyAuthorize]
-        public IHttpActionResult GetProductToCart(string cuscode, string usrname)
-        {
+        public IHttpActionResult GetProductToCart(string cuscode, string usrname) {
             var responseList = new List<OrderCartProductResponse>();
             string errorMessage = "Success";
-            if (string.IsNullOrWhiteSpace(cuscode))
-            {
-                return Json(new
-                {
+            if (string.IsNullOrWhiteSpace(cuscode)) {
+                return Json(new {
                     statusCode = 400,
                     errorMessage = "cuscode is required",
                     result = responseList
                 });
             }
-            if (string.IsNullOrWhiteSpace(usrname))
-            {
-                return Json(new
-                {
+            if (string.IsNullOrWhiteSpace(usrname)) {
+                return Json(new {
                     statusCode = 400,
                     errorMessage = "usrname is required",
                     result = responseList
                 });
             }
 
-            try
-            {
+            try {
                 string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
                 using (SqlConnection conn = new SqlConnection(connectionString))
-                using (SqlCommand cmd = new SqlCommand("P_ShoppingCart_list_Catalog", conn))
-                {
+                using (SqlCommand cmd = new SqlCommand("P_ShoppingCart_list_Catalog", conn)) {
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.Add("@inCUSCOD", SqlDbType.VarChar, 50).Value = cuscode;
                     cmd.Parameters.Add("@usrlogin", SqlDbType.VarChar, 50).Value = usrname;
                     conn.Open();
-                    using (SqlDataReader dr = cmd.ExecuteReader())
-                    {
-                        while (dr.Read())
-                        {
-                            responseList.Add(new OrderCartProductResponse
-                            {
+                    using (SqlDataReader dr = cmd.ExecuteReader()) {
+                        while (dr.Read()) {
+                            responseList.Add(new OrderCartProductResponse {
                                 id = dr["id"] == DBNull.Value ? "" : dr["id"].ToString(),
                                 company = dr["Company"] == DBNull.Value ? "" : dr["Company"].ToString(),
                                 cuscod = dr["CUSCOD"] == DBNull.Value ? "" : dr["CUSCOD"].ToString(),
@@ -967,26 +1010,24 @@ namespace ApiService.Controllers
                                 uom = dr["UOM"] == DBNull.Value ? "" : dr["UOM"].ToString(),
                                 status = dr["Status"] == DBNull.Value ? "" : dr["Status"].ToString(),
                                 orddat = dr["ORDDAT"] == DBNull.Value ? "" : dr["ORDDAT"].ToString(),
-                                
+
                                 insertedBy = dr["Inserted By"] == DBNull.Value ? "" : dr["Inserted By"].ToString(),
                                 insertedDate = dr["Inserted Date"] == DBNull.Value ? "" : dr["Inserted Date"].ToString(),
                                 updatedBy = dr["Updated By"] == DBNull.Value ? "" : dr["Updated By"].ToString(),
                                 updatedDate = dr["Updated Date"] == DBNull.Value ? "" : dr["Updated Date"].ToString(),
                                 imagePath = dr["imagePath"] == DBNull.Value ? "" : dr["imagePath"].ToString()
-                                
+
 
                             });
                         }
                     }
                 }
             }
-            catch (Exception ex)
-            {
+            catch (Exception ex) {
                 errorMessage = ex.Message;
             }
 
-            var result = new
-            {
+            var result = new {
                 statusCode =
                     errorMessage == "Success"
                     ? 200
@@ -1137,6 +1178,12 @@ namespace ApiService.Controllers
 
             public List<string> fittingFilter { get; set; }
         }
+        public class ProductSearchFieldDataRequest
+        {
+            public string searchText { get; set; }
+            public List<string> searchFields { get; set; }
+
+        }
         public class OrderCartProductResponse
         {
             public string id { get; set; }
@@ -1144,7 +1191,7 @@ namespace ApiService.Controllers
             public string cuscod { get; set; }
             public string orddat { get; set; }
             public string stkcod { get; set; }
-            public string stkdes { get; set; } 
+            public string stkdes { get; set; }
             public string stkgrp { get; set; }
             public string minord { get; set; }
             public string price { get; set; }
