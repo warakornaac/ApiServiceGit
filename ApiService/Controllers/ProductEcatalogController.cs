@@ -966,6 +966,106 @@ namespace ApiService.Controllers
         }
 
         [HttpPost]
+        [Route("Ecatalog/EditProductToCart")]
+        [ApiKeyAuthorize]
+        public IHttpActionResult EditProductToCart(string ordid = "", string cuscode="", int qty = 0 ,decimal price = 0 ,string username = "")
+        {
+
+            var responseList = new List<CartDeleteResponse>();
+            string errorMessage = "Success";
+
+            if (string.IsNullOrWhiteSpace(ordid))
+            {
+                return Json(new
+                {
+                    statusCode = 400,
+                    errorMessage = "OrdId is required",
+                    result = new { }
+                });
+            }
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                return Json(new
+                {
+                    statusCode = 400,
+                    errorMessage = "Username is required",
+                    result = new { }
+                });
+            }
+            try
+            {
+                string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand("P_Delete_Ordering_Cart", conn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add("@inOrdId", SqlDbType.Int).Value = ordid;
+                    cmd.Parameters.Add("@@inCUSCOD", SqlDbType.VarChar, 50).Value = cuscode;
+                    cmd.Parameters.Add("@inQty", SqlDbType.Int).Value = qty;
+                    cmd.Parameters.Add("@inPrice", SqlDbType.Decimal).Value = price;
+                    cmd.Parameters.Add("@inUsername", SqlDbType.VarChar, 50).Value = username;
+
+                    conn.Open();
+                    // cmd.ExecuteNonQuery();
+                    using (SqlDataReader dr = cmd.ExecuteReader())
+                    {
+                        while (dr.Read())
+                        {
+                            responseList.Add(new CartDeleteResponse
+                            {
+                                company = dr["Company"] == DBNull.Value ? "" : dr["Company"].ToString(),
+                                cuscode = dr["CUSCOD"] == DBNull.Value ? "" : dr["CUSCOD"].ToString(),
+                                stkcod = dr["STKCOD"] == DBNull.Value ? "" : dr["STKCOD"].ToString(),
+                                qty = dr["Qty"] == DBNull.Value ? "" : dr["Qty"].ToString(),
+                                price = dr["Price"] == DBNull.Value ? "" : dr["Price"].ToString(),
+                                backorder = dr["BackOrder"] == DBNull.Value ? "" : dr["BackOrder"].ToString(),
+                                username = dr["DeletedBy"] == DBNull.Value ? "" : dr["DeletedBy"].ToString()
+
+
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                errorMessage = ex.Message;
+            }
+
+            if (errorMessage != "Success")
+            {
+                return Json(new
+                {
+                    statusCode = 500,
+                    errorMessage,
+                    result = new { }
+                });
+            }
+            if (responseList.Count == 0)
+            {
+                return Json(new
+                {
+                    statusCode = 404,
+                    errorMessage = "Can't find order",
+                    result = new { }
+                });
+            }
+            var result = new
+            {
+                statusCode =
+                    errorMessage == "Success"
+                    ? 200
+                    : 500,
+
+                errorMessage,
+
+                result = responseList
+            };
+
+            return Json(result);
+        }
+
+        [HttpPost]
         [Route("Ecatalog/DeleteProductToCart")]
         [ApiKeyAuthorize]
         public IHttpActionResult DeleteProductToCart(string ordid = "", string username = "")

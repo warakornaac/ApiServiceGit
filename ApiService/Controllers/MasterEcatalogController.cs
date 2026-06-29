@@ -581,6 +581,11 @@ namespace ApiService.Controllers
             public string prodgrpid { get; set; }
             public string prodlineid { get; set; }
         }
+        public class GetSalesmanRespone 
+        { 
+            public string slmCode { get; set; }
+            public string slmName { get; set; }
+        }
 
     }
 }
