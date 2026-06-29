@@ -879,7 +879,6 @@ namespace ApiService.Controllers
         [HttpPost]
         [Route("Ecatalog/AddProductToCart")]
         [ApiKeyAuthorize]
-<<<<<<< HEAD
         public IHttpActionResult AddProductToCart(string cuscode="", string stkcod = "", string company = "", string price = "", string qty = "", string username = "", string backorder = "0")
         {
 
@@ -899,39 +898,6 @@ namespace ApiService.Controllers
             {
                 if (string.IsNullOrWhiteSpace(item.Key))
                     return Json(new { statusCode = 400, errorMessage = $"{item.Value} is required", result = new { } });
-=======
-        public IHttpActionResult AddProductToCart(string cuscod, string stkcod, string company, string price, string qty, string usrname, string bkorder = "0", string moq = "1") {
-
-            //var responseList = new List<ProductTabLinkageResponse>();
-            string errorMessage = "Success";
-            if (string.IsNullOrWhiteSpace(cuscod)) {
-                return Json(new {
-                    statusCode = 400,
-                    errorMessage = "Cuscod is required",
-                    result = ""
-                });
-            }
-            if (string.IsNullOrWhiteSpace(stkcod)) {
-                return Json(new {
-                    statusCode = 400,
-                    errorMessage = "Stkcode is required",
-                    result = ""
-                });
-            }
-            if (string.IsNullOrWhiteSpace(price)) {
-                return Json(new {
-                    statusCode = 400,
-                    errorMessage = "Price is required",
-                    result = ""
-                });
-            }
-            if (string.IsNullOrWhiteSpace(qty)) {
-                return Json(new {
-                    statusCode = 400,
-                    errorMessage = "Qty is required",
-                    result = ""
-                });
->>>>>>> f1234cfcc08c01499d810f21003a64d17b110bbd
             }
             try {
                 string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
@@ -970,7 +936,6 @@ namespace ApiService.Controllers
             catch (Exception ex) {
                 errorMessage = ex.Message;
             }
-<<<<<<< HEAD
             var cartResult = new CartAddResponse
             {
                 cuscode = cuscode,
@@ -983,9 +948,7 @@ namespace ApiService.Controllers
             };
             var result = new
             {
-=======
-            var result = new {
->>>>>>> f1234cfcc08c01499d810f21003a64d17b110bbd
+
                 statusCode =
                 errorMessage == "Success"
                 ? 200
@@ -1102,12 +1065,8 @@ namespace ApiService.Controllers
         [HttpGet]
         [Route("Ecatalog/GetProductToCart")]
         [ApiKeyAuthorize]
-<<<<<<< HEAD
         public IHttpActionResult GetProductToCart(string cuscode="", string username="")
         {
-=======
-        public IHttpActionResult GetProductToCart(string cuscode, string usrname) {
->>>>>>> f1234cfcc08c01499d810f21003a64d17b110bbd
             var responseList = new List<OrderCartProductResponse>();
             string errorMessage = "Success";
             if (string.IsNullOrWhiteSpace(cuscode)) {
@@ -1117,15 +1076,10 @@ namespace ApiService.Controllers
                     result = responseList
                 });
             }
-<<<<<<< HEAD
             if (string.IsNullOrWhiteSpace(username))
             {
                 return Json(new
                 {
-=======
-            if (string.IsNullOrWhiteSpace(usrname)) {
-                return Json(new {
->>>>>>> f1234cfcc08c01499d810f21003a64d17b110bbd
                     statusCode = 400,
                     errorMessage = "username is required",
                     result = responseList
@@ -1140,7 +1094,6 @@ namespace ApiService.Controllers
                     cmd.Parameters.Add("@inCUSCOD", SqlDbType.VarChar, 50).Value = cuscode;
                     cmd.Parameters.Add("@usrlogin", SqlDbType.VarChar, 50).Value = username;
                     conn.Open();
-<<<<<<< HEAD
                     using (SqlDataReader dr = cmd.ExecuteReader())
                     {
                         while (dr.Read())
@@ -1148,12 +1101,6 @@ namespace ApiService.Controllers
                             responseList.Add(new OrderCartProductResponse
                             {
                                 ordId = dr["id"] == DBNull.Value ? "" : dr["id"].ToString(),
-=======
-                    using (SqlDataReader dr = cmd.ExecuteReader()) {
-                        while (dr.Read()) {
-                            responseList.Add(new OrderCartProductResponse {
-                                id = dr["id"] == DBNull.Value ? "" : dr["id"].ToString(),
->>>>>>> f1234cfcc08c01499d810f21003a64d17b110bbd
                                 company = dr["Company"] == DBNull.Value ? "" : dr["Company"].ToString(),
                                 cuscod = dr["CUSCOD"] == DBNull.Value ? "" : dr["CUSCOD"].ToString(),
                                 stkcod = dr["STKCOD"] == DBNull.Value ? "" : dr["STKCOD"].ToString(),
@@ -1166,12 +1113,7 @@ namespace ApiService.Controllers
                                 amt = dr["Amt"] == DBNull.Value ? "" : dr["Amt"].ToString(),
                                 uom = dr["UOM"] == DBNull.Value ? "" : dr["UOM"].ToString(),
                                 status = dr["Status"] == DBNull.Value ? "" : dr["Status"].ToString(),
-<<<<<<< HEAD
                                 orddat = dr["ORDDAT"] == DBNull.Value ? "" : dr["ORDDAT"].ToString(),                                
-=======
-                                orddat = dr["ORDDAT"] == DBNull.Value ? "" : dr["ORDDAT"].ToString(),
-
->>>>>>> f1234cfcc08c01499d810f21003a64d17b110bbd
                                 insertedBy = dr["Inserted By"] == DBNull.Value ? "" : dr["Inserted By"].ToString(),
                                 insertedDate = dr["Inserted Date"] == DBNull.Value ? "" : dr["Inserted Date"].ToString(),
                                 updatedBy = dr["Updated By"] == DBNull.Value ? "" : dr["Updated By"].ToString(),
