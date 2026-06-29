@@ -813,46 +813,25 @@ namespace ApiService.Controllers
         [HttpPost]
         [Route("Ecatalog/AddProductToCart")]
         [ApiKeyAuthorize]
-        public IHttpActionResult AddProductToCart(string cuscod, string stkcod, string company, string price, string qty,string usrname, string bkorder = "0", string moq ="1" )
+        public IHttpActionResult AddProductToCart(string cuscode="", string stkcod = "", string company = "", string price = "", string qty = "", string username = "", string backorder = "0")
         {
 
             //var responseList = new List<ProductTabLinkageResponse>();
             string errorMessage = "Success";
-            if (string.IsNullOrWhiteSpace(cuscod))
+            var validations = new[]
             {
-                return Json(new
-                {
-                    statusCode = 400,
-                    errorMessage = "Cuscod is required",
-                    result = ""
-                });
-            }
-            if (string.IsNullOrWhiteSpace(stkcod))
+                new KeyValuePair<string, string>(cuscode,   "Cuscode"),
+                new KeyValuePair<string, string>(stkcod,   "Stkcod"),
+                new KeyValuePair<string, string>(company,  "Company"),
+                new KeyValuePair<string, string>(price,    "Price"),
+                new KeyValuePair<string, string>(qty,      "Qty"),
+                new KeyValuePair<string, string>(username, "Username"),
+            };
+
+            foreach (var item in validations)
             {
-                return Json(new
-                {
-                    statusCode = 400,
-                    errorMessage = "Stkcode is required",
-                    result = ""
-                });
-            }
-            if (string.IsNullOrWhiteSpace(price))
-            {
-                return Json(new
-                {
-                    statusCode = 400,
-                    errorMessage = "Price is required",
-                    result = ""
-                });
-            }
-            if (string.IsNullOrWhiteSpace(qty))
-            {
-                return Json(new
-                {
-                    statusCode = 400,
-                    errorMessage = "Qty is required",
-                    result = ""
-                });
+                if (string.IsNullOrWhiteSpace(item.Key))
+                    return Json(new { statusCode = 400, errorMessage = $"{item.Value} is required", result = new { } });
             }
             try
             {
@@ -861,7 +840,7 @@ namespace ApiService.Controllers
                 using (SqlCommand cmd = new SqlCommand("p_SaveOrderCart", conn))
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
-                    cmd.Parameters.Add("@Customer", SqlDbType.VarChar, 50).Value = cuscod;
+                    cmd.Parameters.Add("@Customer", SqlDbType.VarChar, 50).Value = cuscode;
                     cmd.Parameters.Add("@STKCOD", SqlDbType.VarChar, 50).Value = stkcod;
                     cmd.Parameters.Add("@Company", SqlDbType.VarChar, 50).Value = company;
 
@@ -873,12 +852,11 @@ namespace ApiService.Controllers
                     cmd.Parameters.Add("@lastinvprice", SqlDbType.Decimal).Value = 0.0;
 
                     cmd.Parameters.Add("@Qty", SqlDbType.Int).Value = qty;
-                    cmd.Parameters.Add("@Bckorder", SqlDbType.Int).Value = bkorder;
-                    cmd.Parameters.Add("@InsertedBy", SqlDbType.VarChar, 50).Value = usrname;
+                    cmd.Parameters.Add("@Bckorder", SqlDbType.Int).Value = backorder;
+                    cmd.Parameters.Add("@InsertedBy", SqlDbType.VarChar, 50).Value = username;
                     cmd.Parameters.Add("@LineNote", SqlDbType.VarChar, 50).Value = "";
 
                     cmd.Parameters.Add("@ProCode", SqlDbType.VarChar, 50).Value = "";
-                    cmd.Parameters.Add("@minord", SqlDbType.Int).Value = moq;
                     cmd.Parameters.Add("@FOC", SqlDbType.Int).Value = 0;
                     
                     cmd.Parameters.Add("@prclstno", SqlDbType.VarChar).Value = "";
@@ -895,18 +873,127 @@ namespace ApiService.Controllers
             {
                 errorMessage = ex.Message;
             }
+            var cartResult = new CartAddResponse
+            {
+                cuscode = cuscode,
+                stkcod = stkcod,
+                company = company,
+                price = price,
+                qty = qty,
+                username = username,
+                backorder = backorder
+            };
             var result = new
             {
                 statusCode =
-               errorMessage == "Success"
-               ? 200
-               : 500,
+                errorMessage == "Success"
+                ? 200
+                : 500,
 
                 errorMessage,
 
-                result = ""
+                result = errorMessage == "Success"
+                ? (object)cartResult : new { }
             };
 
+            return Json(result);
+
+
+        }
+
+        [HttpPost]
+        [Route("Ecatalog/DeleteProductToCart")]
+        [ApiKeyAuthorize]
+        public IHttpActionResult DeleteProductToCart(string ordid = "", string username = "")
+        {
+
+            var responseList = new List<CartDeleteResponse>();
+            string errorMessage = "Success";
+
+            if (string.IsNullOrWhiteSpace(ordid))
+            {
+                return Json(new
+                {
+                    statusCode = 400,
+                    errorMessage = "OrdId is required",
+                    result = new { }
+                });
+            }
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                return Json(new
+                {
+                    statusCode = 400,
+                    errorMessage = "Username is required",
+                    result = new { }
+                });
+            }
+            try
+            {
+                string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand("P_Delete_Ordering_Cart", conn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add("@inOrdId", SqlDbType.Int).Value = ordid;
+                    cmd.Parameters.Add("@inUsername", SqlDbType.VarChar, 50).Value = username;
+
+                    conn.Open();
+                   // cmd.ExecuteNonQuery();
+                    using (SqlDataReader dr = cmd.ExecuteReader())
+                    {
+                        while (dr.Read())
+                        {
+                            responseList.Add(new CartDeleteResponse
+                            {
+                                company = dr["Company"] == DBNull.Value ? "" : dr["Company"].ToString(),
+                                cuscode = dr["CUSCOD"] == DBNull.Value ? "" : dr["CUSCOD"].ToString(),
+                                stkcod = dr["STKCOD"] == DBNull.Value ? "" : dr["STKCOD"].ToString(),
+                                qty = dr["Qty"] == DBNull.Value ? "" : dr["Qty"].ToString(),
+                                price = dr["Price"] == DBNull.Value ? "" : dr["Price"].ToString(),
+                                backorder = dr["BackOrder"] == DBNull.Value ? "" : dr["BackOrder"].ToString(),
+                                username = dr["DeletedBy"] == DBNull.Value ? "" : dr["DeletedBy"].ToString()
+
+
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                errorMessage = ex.Message;
+            }
+
+            if (errorMessage != "Success")
+            {
+                return Json(new
+                {
+                    statusCode = 500,
+                    errorMessage,
+                    result = new { }
+                });
+            }
+            if (responseList.Count == 0)
+            {
+                return Json(new
+                {
+                    statusCode = 404,
+                    errorMessage = "Can't find order",
+                    result = new { }
+                });
+            }
+            var result = new
+            {
+                statusCode =
+                    errorMessage == "Success"
+                    ? 200
+                    : 500,
+
+                errorMessage,
+
+                result = responseList
+            };
 
             return Json(result);
         }
@@ -914,7 +1001,7 @@ namespace ApiService.Controllers
         [HttpGet]
         [Route("Ecatalog/GetProductToCart")]
         [ApiKeyAuthorize]
-        public IHttpActionResult GetProductToCart(string cuscode, string usrname)
+        public IHttpActionResult GetProductToCart(string cuscode="", string username="")
         {
             var responseList = new List<OrderCartProductResponse>();
             string errorMessage = "Success";
@@ -927,12 +1014,12 @@ namespace ApiService.Controllers
                     result = responseList
                 });
             }
-            if (string.IsNullOrWhiteSpace(usrname))
+            if (string.IsNullOrWhiteSpace(username))
             {
                 return Json(new
                 {
                     statusCode = 400,
-                    errorMessage = "usrname is required",
+                    errorMessage = "username is required",
                     result = responseList
                 });
             }
@@ -945,7 +1032,7 @@ namespace ApiService.Controllers
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.Add("@inCUSCOD", SqlDbType.VarChar, 50).Value = cuscode;
-                    cmd.Parameters.Add("@usrlogin", SqlDbType.VarChar, 50).Value = usrname;
+                    cmd.Parameters.Add("@usrlogin", SqlDbType.VarChar, 50).Value = username;
                     conn.Open();
                     using (SqlDataReader dr = cmd.ExecuteReader())
                     {
@@ -953,7 +1040,7 @@ namespace ApiService.Controllers
                         {
                             responseList.Add(new OrderCartProductResponse
                             {
-                                id = dr["id"] == DBNull.Value ? "" : dr["id"].ToString(),
+                                ordId = dr["id"] == DBNull.Value ? "" : dr["id"].ToString(),
                                 company = dr["Company"] == DBNull.Value ? "" : dr["Company"].ToString(),
                                 cuscod = dr["CUSCOD"] == DBNull.Value ? "" : dr["CUSCOD"].ToString(),
                                 stkcod = dr["STKCOD"] == DBNull.Value ? "" : dr["STKCOD"].ToString(),
@@ -966,8 +1053,7 @@ namespace ApiService.Controllers
                                 amt = dr["Amt"] == DBNull.Value ? "" : dr["Amt"].ToString(),
                                 uom = dr["UOM"] == DBNull.Value ? "" : dr["UOM"].ToString(),
                                 status = dr["Status"] == DBNull.Value ? "" : dr["Status"].ToString(),
-                                orddat = dr["ORDDAT"] == DBNull.Value ? "" : dr["ORDDAT"].ToString(),
-                                
+                                orddat = dr["ORDDAT"] == DBNull.Value ? "" : dr["ORDDAT"].ToString(),                                
                                 insertedBy = dr["Inserted By"] == DBNull.Value ? "" : dr["Inserted By"].ToString(),
                                 insertedDate = dr["Inserted Date"] == DBNull.Value ? "" : dr["Inserted Date"].ToString(),
                                 updatedBy = dr["Updated By"] == DBNull.Value ? "" : dr["Updated By"].ToString(),
@@ -1139,7 +1225,7 @@ namespace ApiService.Controllers
         }
         public class OrderCartProductResponse
         {
-            public string id { get; set; }
+            public string ordId { get; set; }
             public string company { get; set; }
             public string cuscod { get; set; }
             public string orddat { get; set; }
@@ -1153,12 +1239,34 @@ namespace ApiService.Controllers
             public string amt { get; set; }
             public string uom { get; set; }
             public string status { get; set; }
+            public string imagePath { get; set; }
             public string insertedDate { get; set; }
             public string insertedBy { get; set; }
             public string updatedDate { get; set; }
             public string updatedBy { get; set; }
-            public string imagePath { get; set; }
 
+
+        }
+        public class CartAddResponse
+        {
+            public string cuscode { get; set; }
+            public string stkcod { get; set; }
+            public string company { get; set; }
+            public string price { get; set; }
+            public string qty { get; set; }
+            public string username { get; set; }
+            public string backorder { get; set; }
+        }
+
+        public class CartDeleteResponse
+        {
+            public string cuscode { get; set; }
+            public string stkcod { get; set; }
+            public string company { get; set; }
+            public string price { get; set; }
+            public string qty { get; set; }
+            public string username { get; set; }
+            public string backorder { get; set; }
         }
     }
 }
