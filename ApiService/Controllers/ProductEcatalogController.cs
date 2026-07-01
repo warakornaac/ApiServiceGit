@@ -971,7 +971,7 @@ namespace ApiService.Controllers
         public IHttpActionResult EditProductToCart(string ordid = "", string cuscode="", int qty = 0 ,decimal price = 0 ,string username = "")
         {
 
-            var responseList = new List<CartDeleteResponse>();
+            var responseList = new List<CartEditResponse>();
             string errorMessage = "Success";
 
             if (string.IsNullOrWhiteSpace(ordid))
@@ -996,7 +996,7 @@ namespace ApiService.Controllers
             {
                 string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
                 using (SqlConnection conn = new SqlConnection(connectionString))
-                using (SqlCommand cmd = new SqlCommand("P_Delete_Ordering_Cart", conn))
+                using (SqlCommand cmd = new SqlCommand("P_EditOrderCart", conn))
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.Add("@inOrdId", SqlDbType.Int).Value = ordid;
@@ -1011,7 +1011,7 @@ namespace ApiService.Controllers
                     {
                         while (dr.Read())
                         {
-                            responseList.Add(new CartDeleteResponse
+                            responseList.Add(new CartEditResponse
                             {
                                 company = dr["Company"] == DBNull.Value ? "" : dr["Company"].ToString(),
                                 cuscode = dr["CUSCOD"] == DBNull.Value ? "" : dr["CUSCOD"].ToString(),
@@ -1019,7 +1019,7 @@ namespace ApiService.Controllers
                                 qty = dr["Qty"] == DBNull.Value ? "" : dr["Qty"].ToString(),
                                 price = dr["Price"] == DBNull.Value ? "" : dr["Price"].ToString(),
                                 backorder = dr["BackOrder"] == DBNull.Value ? "" : dr["BackOrder"].ToString(),
-                                username = dr["DeletedBy"] == DBNull.Value ? "" : dr["DeletedBy"].ToString()
+                                username = dr["EditedBy"] == DBNull.Value ? "" : dr["EditedBy"].ToString()
 
 
                             });
@@ -1422,6 +1422,16 @@ namespace ApiService.Controllers
             public string backorder { get; set; }
         }
 
+        public class CartEditResponse
+        {
+            public string cuscode { get; set; }
+            public string stkcod { get; set; }
+            public string company { get; set; }
+            public string price { get; set; }
+            public string qty { get; set; }
+            public string username { get; set; }
+            public string backorder { get; set; }
+        }
         public class CartDeleteResponse
         {
             public string cuscode { get; set; }
