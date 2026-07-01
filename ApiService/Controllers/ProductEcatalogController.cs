@@ -1000,7 +1000,7 @@ namespace ApiService.Controllers
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.Add("@inOrdId", SqlDbType.Int).Value = ordid;
-                    cmd.Parameters.Add("@@inCUSCOD", SqlDbType.VarChar, 50).Value = cuscode;
+                    cmd.Parameters.Add("@inCUSCOD", SqlDbType.VarChar, 50).Value = cuscode;
                     cmd.Parameters.Add("@inQty", SqlDbType.Int).Value = qty;
                     cmd.Parameters.Add("@inPrice", SqlDbType.Decimal).Value = price;
                     cmd.Parameters.Add("@inUsername", SqlDbType.VarChar, 50).Value = username;
