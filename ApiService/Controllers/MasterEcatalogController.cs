@@ -524,6 +524,329 @@ namespace ApiService.Controllers
             return Json(result);
         }
 
+        [HttpGet]
+        [Route("Ecatalog/GetShiptoByCuscode")]
+        [ApiKeyAuthorize]
+        public IHttpActionResult GetShiptoByCuscode(string cusCode = "")
+        {
+            var responseList = new List<ShiptoDataResponse>();
+            string errorMessage = "Success";
+            if (string.IsNullOrWhiteSpace(cusCode))
+            {
+                return Json(new
+                {
+                    statusCode = 400,
+                    errorMessage = "Cuscode is required",
+                    result = responseList
+                });
+            }
+            try
+            {
+                string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    using (SqlCommand cmd = new SqlCommand("P_Get_Shipto", conn))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.Add("@inCUSCOD", SqlDbType.VarChar, 50).Value = cusCode;                        
+                        conn.Open();
+                        using (SqlDataReader dr = cmd.ExecuteReader())
+                        {
+                            while (dr.Read())
+                            {
+                                responseList.Add(new ShiptoDataResponse
+                                {
+                                    //cusCode = Convert.ToString(dr["prodGrpId"]),
+                                    cusCode = dr["Customer No_"] == DBNull.Value ? "" : dr["Customer No_"].ToString(),
+                                    shipCode = dr["Code"] == DBNull.Value ? "" : dr["Code"].ToString(),
+                                    name  = dr["Name"] == DBNull.Value ? "" : dr["Name"].ToString(),
+                                    address = dr["Address"] == DBNull.Value ? "" : dr["Address"].ToString(),
+                                    address2 = dr["Address 2"] == DBNull.Value ? "" : dr["Address 2"].ToString(),
+                                    city = dr["City"] == DBNull.Value ? "" : dr["City"].ToString(),
+                                    contact = dr["Contact"] == DBNull.Value ? "" : dr["Contact"].ToString(),
+                                    phone = dr["Phone No_"] == DBNull.Value ? "" : dr["Phone No_"].ToString(),
+                                    postCode = dr["Post Code"] == DBNull.Value ? "" : dr["Post Code"].ToString(),
+                                    shipFromWarehowse = dr["Ship From WH"] == DBNull.Value ? "" : dr["Ship From WH"].ToString(),
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                errorMessage = ex.Message;
+            }
+            if (responseList.Count == 0)
+            {
+                return Json(new
+                {
+                    statusCode = 404,
+                    errorMessage = "ShipTo not found.",
+                    result = new { }
+                });
+            }
+            var result = new
+            {
+                statusCode =
+                   errorMessage == "Success"
+                   ? 200
+                   : 500,
+
+                errorMessage,
+
+                result = responseList
+            };
+            var jsonLog = JsonConvert.SerializeObject(new
+            {
+                cusCode = cusCode
+                //prodGrpId = prodGrpId,
+                //prodLineId = prodLineId,
+            });
+            string jsonReturn = JsonConvert.SerializeObject(result);
+            String lastId = _apiServerService.SaveApiResponse("Ecatalog/GetShiptoByCuscode", jsonLog, "");
+            _apiServerService.UpdateApiRespone(lastId, jsonReturn.ToString());
+
+            return Json(result);
+        }
+
+        [HttpGet]
+        [Route("Ecatalog/GetSalesmanName")]
+        [ApiKeyAuthorize]
+        public IHttpActionResult GetSalesmanAll()
+        {
+            var responseList = new List<GetSalesmanRespone>();
+            string errorMessage = "Success";
+            try
+            {
+                string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {                    
+                    using (SqlCommand cmd = new SqlCommand("P_Get_SalesmanAll", conn))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        conn.Open();
+                        using (SqlDataReader dr = cmd.ExecuteReader())
+                        {
+                            while (dr.Read())
+                            {
+                                responseList.Add(new GetSalesmanRespone
+                                {
+                                    slmCode = dr["SLMCOD"] == DBNull.Value ? "" : dr["SLMCOD"].ToString(),
+                                    slmName = dr["SLMNAM"] == DBNull.Value ? "" : dr["SLMNAM"].ToString()
+                                });
+                            }
+                        }
+                    }
+                }
+
+            }
+            catch (Exception message)
+            {
+                errorMessage = message.Message;
+            }
+            if (responseList.Count == 0)
+            {
+                return Json(new
+                {
+                    statusCode = 404,
+                    errorMessage = "SaleMan not found.",
+                    result = new { }
+                });
+            }
+            var result = new
+            {
+                statusCode =
+                errorMessage == "Success"
+                ? 200
+                : 500,
+
+                errorMessage,
+
+                result = responseList
+            };
+            var jsonLog = JsonConvert.SerializeObject(new
+            {
+                
+                //prodGrpId = prodGrpId,
+                //prodLineId = prodLineId,
+            });
+            string jsonReturn = JsonConvert.SerializeObject(result);
+            String lastId = _apiServerService.SaveApiResponse("Ecatalog/GetSalesmanName", jsonLog, "");
+            _apiServerService.UpdateApiRespone(lastId, jsonReturn.ToString());
+
+            return Json(result);
+        }
+
+        [HttpGet]
+        [Route("Ecatalog/CustomerbySalesman")]
+        [ApiKeyAuthorize]
+        public IHttpActionResult GetCustomerbySalesman(string slmcode = "")
+        {
+            var responseList = new List<GetCustomerRespone>();
+            string errorMessage = "Success";
+            if (string.IsNullOrEmpty(slmcode))
+            {
+                return Json(new
+                {
+                    statusCode = 400,
+                    errorMessage = "Slmcode is required",
+                    result = responseList
+                });
+            }
+            try
+            {
+                string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    using (SqlCommand cmd = new SqlCommand("P_Get_CustomerbySalesman", conn))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.Add("@inSLMCOD", SqlDbType.VarChar, 50).Value = slmcode;
+                        conn.Open();
+                        using (SqlDataReader dr = cmd.ExecuteReader())
+                        {
+                            while (dr.Read())
+                            {
+                                responseList.Add(new GetCustomerRespone
+                                {
+                                    company = dr["Company"] == DBNull.Value ? "" : dr["Company"].ToString(),
+                                    cuscode = dr["CUSCOD"] == DBNull.Value ? "" : dr["CUSCOD"].ToString(),
+                                    cusname = dr["CUSNAM"] == DBNull.Value ? "" : dr["CUSNAM"].ToString(),
+                                    slmcode = dr["SLMCOD"] == DBNull.Value ? "" : dr["SLMCOD"].ToString(),                                
+                                });
+                            }
+                        }
+                    }
+                }
+
+            }
+            catch (Exception message)
+            {
+                errorMessage = message.Message;
+            }
+            if (responseList.Count == 0)
+            {
+                return Json(new
+                {
+                    statusCode = 404,
+                    errorMessage = "Customer not found.",
+                    result = new { }
+                });
+            }
+            var result = new
+            {
+                statusCode =
+                errorMessage == "Success"
+                ? 200
+                : 500,
+
+                errorMessage,
+
+                result = responseList
+            };
+            var jsonLog = JsonConvert.SerializeObject(new
+            {
+                slmcode= slmcode
+                //prodGrpId = prodGrpId,
+                //prodLineId = prodLineId,
+            });
+            string jsonReturn = JsonConvert.SerializeObject(result);
+            String lastId = _apiServerService.SaveApiResponse("Ecatalog/CustomerbySalesman", jsonLog, "");
+            _apiServerService.UpdateApiRespone(lastId, jsonReturn.ToString());
+
+            return Json(result);
+        }
+
+        [HttpGet]
+        [Route("Ecatalog/GetInfomantionCustomer")]
+        [ApiKeyAuthorize]
+        public IHttpActionResult GetInfomantionCustomer(string cuscode = "")
+        {
+            var responseList = new List<GetCustomerInformationRespone>();
+            string errorMessage = "Success";
+            if (string.IsNullOrEmpty(cuscode))
+            {
+                return Json(new
+                {
+                    statusCode = 400,
+                    errorMessage = "Cuscode is required",
+                    result = responseList
+                });
+            }
+            try
+            {
+                string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    using (SqlCommand cmd = new SqlCommand("P_Get_CustomerInformation", conn))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.Add("@inCUSCOD", SqlDbType.VarChar, 50).Value = cuscode;
+                        conn.Open();
+                        using (SqlDataReader dr = cmd.ExecuteReader())
+                        {
+                            while (dr.Read())
+                            {
+                                responseList.Add(new GetCustomerInformationRespone
+                                {                                    
+                                    cuscode = dr["CUSCOD"] == DBNull.Value ? "" : dr["CUSCOD"].ToString(),
+                                    cusname = dr["CUSNAM"] == DBNull.Value ? "" : dr["CUSNAM"].ToString(),
+                                    pro = dr["PRO"] == DBNull.Value ? "" : dr["PRO"].ToString(),
+                                    address = dr["ADDR_01"] == DBNull.Value ? "" : dr["ADDR_01"].ToString(),
+                                    address2 = dr["ADDR_02"] == DBNull.Value ? "" : dr["ADDR_02"].ToString(),
+                                    custype = dr["CUSTYP"] == DBNull.Value ? "" : dr["CUSTYP"].ToString(),
+                                    slmcode = dr["SLMCOD"] == DBNull.Value ? "" : dr["SLMCOD"].ToString(),
+                                    inactive = dr["INACTIVE"] == DBNull.Value ? "" : dr["INACTIVE"].ToString(),
+                                    block = dr["BLOCKED"] == DBNull.Value ? "" : dr["BLOCKED"].ToString(),
+                                    phone = dr["TELNUM"] == DBNull.Value ? "" : dr["TELNUM"].ToString(),
+                                    rating = dr["Rating"] == DBNull.Value ? "" : dr["Rating"].ToString(),
+                                });
+                            }
+                        }
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+                errorMessage = ex.Message;
+            }
+            if (responseList.Count == 0)
+            {
+                return Json(new
+                {
+                    statusCode = 404,
+                    errorMessage = "CustomerInformation not found.",
+                    result = new { }
+                });
+            }
+            var result = new
+            {
+                statusCode =
+                errorMessage == "Success"
+                ? 200
+                : 500,
+
+                errorMessage,
+
+                result = responseList
+            };
+            var jsonLog = JsonConvert.SerializeObject(new
+            {
+                cuscode= cuscode
+                //prodGrpId = prodGrpId,
+                //prodLineId = prodLineId,
+            });
+            string jsonReturn = JsonConvert.SerializeObject(result);
+            String lastId = _apiServerService.SaveApiResponse("Ecatalog/GetInfomantionCustomer", jsonLog, "");
+            _apiServerService.UpdateApiRespone(lastId, jsonReturn.ToString());
+
+            return Json(result);
+
+        }
+
+
         public class MasterMarkerDataResponse
         {
             public string Id { get; set; }
@@ -581,10 +904,45 @@ namespace ApiService.Controllers
             public string prodgrpid { get; set; }
             public string prodlineid { get; set; }
         }
+        public class ShiptoDataResponse
+        {
+            public string cusCode { get; set; }
+            public string shipCode { get; set; }
+            public string name { get; set; }
+            public string address { get; set; }
+            public string address2 { get; set; }
+            public string city { get; set; }
+            public string contact { get; set; }
+            public string phone { get; set; }
+            public string postCode { get; set; }
+            public string shipFromWarehowse { get; set; }
+
+        }
         public class GetSalesmanRespone 
         { 
             public string slmCode { get; set; }
             public string slmName { get; set; }
+        }
+        public class GetCustomerRespone
+        {
+            public string company {  get; set; }
+            public string cuscode {  get; set; }
+            public string cusname { get; set; }
+            public string slmcode { get; set; }
+        }
+        public class GetCustomerInformationRespone
+        {
+            public string cuscode { get; set; }
+            public string cusname { get; set; }
+            public string pro { get; set; }
+            public string address { get; set; }
+            public string address2 { get; set; }
+            public string custype { get; set; }
+            public string slmcode { get; set; }
+            public string inactive { get; set; }
+            public string block { get; set; }
+            public string phone { get; set; }
+            public string rating { get; set; }
         }
 
     }

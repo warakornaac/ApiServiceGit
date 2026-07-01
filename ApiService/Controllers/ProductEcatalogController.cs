@@ -1,4 +1,6 @@
 ﻿using ApiService.Filters;
+using Microsoft.Ajax.Utilities;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -7,9 +9,8 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Web;
 using System.Web.Http;
-using RouteAttribute = System.Web.Http.RouteAttribute;
 using HttpGetAttribute = System.Web.Http.HttpGetAttribute;
-using Newtonsoft.Json;
+using RouteAttribute = System.Web.Http.RouteAttribute;
 
 namespace ApiService.Controllers
 {
@@ -983,6 +984,33 @@ namespace ApiService.Controllers
                     result = new { }
                 });
             }
+            if (string.IsNullOrWhiteSpace(cuscode))
+            {
+                return Json(new
+                {
+                    statusCode = 400,
+                    errorMessage = "Cuscode is required",
+                    result = new { }
+                });
+            }
+            if (qty == 0 || qty < 0)
+            {
+                return Json(new
+                {
+                    statusCode = 400,
+                    errorMessage = "qty invalide",
+                    result = new { }
+                });
+            }
+            if (price == 0 || price < 0)
+            {
+                return Json(new
+                {
+                    statusCode = 400,
+                    errorMessage = "Price invalide",
+                    result = new { }
+                });
+            }
             if (string.IsNullOrWhiteSpace(username))
             {
                 return Json(new
@@ -1000,7 +1028,7 @@ namespace ApiService.Controllers
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.Add("@inOrdId", SqlDbType.Int).Value = ordid;
-                    cmd.Parameters.Add("@@inCUSCOD", SqlDbType.VarChar, 50).Value = cuscode;
+                    cmd.Parameters.Add("@inCUSCOD", SqlDbType.VarChar, 50).Value = cuscode;
                     cmd.Parameters.Add("@inQty", SqlDbType.Int).Value = qty;
                     cmd.Parameters.Add("@inPrice", SqlDbType.Decimal).Value = price;
                     cmd.Parameters.Add("@inUsername", SqlDbType.VarChar, 50).Value = username;
@@ -1013,6 +1041,7 @@ namespace ApiService.Controllers
                         {
                             responseList.Add(new CartEditResponse
                             {
+                                ordid = dr["OrdID"] == DBNull.Value ? "" : dr["OrdID"].ToString(),
                                 company = dr["Company"] == DBNull.Value ? "" : dr["Company"].ToString(),
                                 cuscode = dr["CUSCOD"] == DBNull.Value ? "" : dr["CUSCOD"].ToString(),
                                 stkcod = dr["STKCOD"] == DBNull.Value ? "" : dr["STKCOD"].ToString(),
@@ -1046,7 +1075,7 @@ namespace ApiService.Controllers
                 return Json(new
                 {
                     statusCode = 404,
-                    errorMessage = "Can't find order",
+                    errorMessage = "Order not found.",
                     result = new { }
                 });
             }
@@ -1143,7 +1172,7 @@ namespace ApiService.Controllers
                 return Json(new
                 {
                     statusCode = 404,
-                    errorMessage = "Can't find order",
+                    errorMessage = "Order not found.",
                     result = new { }
                 });
             }
@@ -1424,6 +1453,7 @@ namespace ApiService.Controllers
 
         public class CartEditResponse
         {
+            public string ordid { get; set; }
             public string cuscode { get; set; }
             public string stkcod { get; set; }
             public string company { get; set; }
