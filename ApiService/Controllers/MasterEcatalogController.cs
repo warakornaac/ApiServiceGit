@@ -613,7 +613,7 @@ namespace ApiService.Controllers
         [HttpGet]
         [Route("Ecatalog/GetSalesmanName")]
         [ApiKeyAuthorize]
-        public IHttpActionResult GetSalesmanAll()
+        public IHttpActionResult GetSalesmanAll(string slmcode = "")
         {
             var responseList = new List<GetSalesmanRespone>();
             string errorMessage = "Success";
@@ -625,6 +625,7 @@ namespace ApiService.Controllers
                     using (SqlCommand cmd = new SqlCommand("P_Get_SalesmanAll", conn))
                     {
                         cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.Add("@inSLMCOD", SqlDbType.VarChar, 50).Value = slmcode;
                         conn.Open();
                         using (SqlDataReader dr = cmd.ExecuteReader())
                         {
@@ -799,6 +800,8 @@ namespace ApiService.Controllers
                                     slmcode = dr["SLMCOD"] == DBNull.Value ? "" : dr["SLMCOD"].ToString(),
                                     inactive = dr["INACTIVE"] == DBNull.Value ? "" : dr["INACTIVE"].ToString(),
                                     block = dr["BLOCKED"] == DBNull.Value ? "" : dr["BLOCKED"].ToString(),
+                                    aacpaytrm = dr["AACPAYTRM"] == DBNull.Value ? "" : dr["AACPAYTRM"].ToString(),
+                                    tacpaytrm = dr["TACPAYTRM"] == DBNull.Value ? "" : dr["TACPAYTRM"].ToString(),
                                     phone = dr["TELNUM"] == DBNull.Value ? "" : dr["TELNUM"].ToString(),
                                     rating = dr["Rating"] == DBNull.Value ? "" : dr["Rating"].ToString(),
                                 });
@@ -941,6 +944,8 @@ namespace ApiService.Controllers
             public string slmcode { get; set; }
             public string inactive { get; set; }
             public string block { get; set; }
+            public string aacpaytrm { get; set; }
+            public string tacpaytrm { get; set; }
             public string phone { get; set; }
             public string rating { get; set; }
         }
