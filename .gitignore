@@ -46,6 +46,18 @@ $RECYCLE.BIN/
 # Mac desktop service store files
 .DS_Store
 
+# Others
+~$*
+*~
+CodeCoverage/
+
+# MSBuild Binary and Structured Log
+*.binlog
+
+# MSTest test Results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+
 # Config
 ApiService/Web.config
 
