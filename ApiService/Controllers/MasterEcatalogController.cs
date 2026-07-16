@@ -78,6 +78,75 @@ namespace ApiService.Controllers
 
             return Json(result);
         }
+
+        [HttpGet]
+        [Route("Ecatalog/GetMakerCar")]
+        [ApiKeyAuthorize]
+        public IHttpActionResult GetMakerCar(string marketSegmentId = "ALL")
+        {
+            var responseList = new List<MasterMarkerDataResponse>();
+            string errorMessage = "Success";
+            //if (string.IsNullOrWhiteSpace(moduleId))
+            //{
+            //    return Json(new
+            //    {
+            //        statusCode = 400,
+            //        errorMessage = "ModuleId is required",
+            //        result = responseList
+            //    });
+            //}
+
+
+            try
+            {
+                string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand("P_SearchVIO_Selector_Dev", conn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add("@inModule", SqlDbType.VarChar, 50).Value = "3";
+                    cmd.Parameters.Add("@inMarketseId", SqlDbType.VarChar,50).Value = marketSegmentId;
+                    conn.Open();
+                    using (SqlDataReader dr = cmd.ExecuteReader())
+                    {
+                        while (dr.Read())
+                        {
+                            responseList.Add(new MasterMarkerDataResponse
+                            {
+                                Id = Convert.ToString(dr["Id"]),
+                                Name = Convert.ToString(dr["Name"])
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                errorMessage = ex.Message;
+            }
+
+            var result = new
+            {
+                statusCode =
+                    errorMessage == "Success"
+                    ? 200
+                    : 500,
+
+                errorMessage,
+
+                result = responseList
+            };
+            var jsonLog = JsonConvert.SerializeObject(new
+            {
+                marketSegmentId = marketSegmentId
+            });
+            string jsonReturn = JsonConvert.SerializeObject(result);
+            String lastId = _apiServerService.SaveApiResponse("Ecatalog/GetMakerCar", jsonLog, "");
+            _apiServerService.UpdateApiRespone(lastId, jsonReturn.ToString());
+
+            return Json(result);
+        }
+
         [HttpGet]
         [Route("Ecatalog/GetModelRange")]
         [ApiKeyAuthorize]
