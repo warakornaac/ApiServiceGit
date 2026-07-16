@@ -99,7 +99,7 @@ namespace ApiService.Controllers
                         else
                         {
                             //save data
-                            var statusApi = saveDataOrder(rowData.Company, rowData.Cuscode, rowData.Stkcode, rowData.SalesPrice, rowData.Reason, rowData.Quantity, rowData.InsertBy, rowData.IsBargain.ToUpper());
+                            var statusApi = saveDataOrder(rowData.Company, rowData.Cuscode, rowData.Stkcode, rowData.SalesPrice, rowData.Reason, rowData.Quantity, rowData.PromotionId, rowData.InsertBy, rowData.IsBargain.ToUpper());
                             if (statusApi.ToString() == "Y")
                             {
                                 ++rowInsert;
@@ -140,7 +140,7 @@ namespace ApiService.Controllers
             return Json(dataRes);
         }
         //save data
-        public object saveDataOrder(string Company, string Cuscode, string Stkcode, string SalesPrice, string Reason, int Quantity, string InsertBy, string IsBargain)
+        public object saveDataOrder(string Company, string Cuscode, string Stkcode, string SalesPrice, string Reason, int Quantity, string PromotionId, string InsertBy, string IsBargain)
         {
             var storedResult = string.Empty;
             var flagResult = string.Empty;
@@ -151,16 +151,17 @@ namespace ApiService.Controllers
             try
             {
                 conn.Open();
-                var cmd = new SqlCommand("P_Save_Ai_Order_Cart", conn);
+                var cmd = new SqlCommand("P_Save_Ai_Order_Cart_Dev", conn);
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@Company", Company);
                 cmd.Parameters.AddWithValue("@Cuscode", Cuscode);
                 cmd.Parameters.AddWithValue("@Stkcode", Stkcode);
                 cmd.Parameters.AddWithValue("@SalesPrice", SalesPrice);
                 cmd.Parameters.AddWithValue("@Quantity", Quantity);
+                cmd.Parameters.AddWithValue("@PromotionId", PromotionId);
                 cmd.Parameters.AddWithValue("@Reason", Reason);
-                cmd.Parameters.AddWithValue("@IsBargain", IsBargain);
                 cmd.Parameters.AddWithValue("@InsertBy", InsertBy);
+                cmd.Parameters.AddWithValue("@IsBargain", IsBargain);
 
                 SqlParameter p = new SqlParameter("@OutGenstatus", SqlDbType.NVarChar, 100);
                 p.Direction = ParameterDirection.Output;
@@ -263,6 +264,8 @@ namespace ApiService.Controllers
             public int Quantity { get; set; }
             public string Reason { get; set; }
             public string IsBargain { get; set; }
+            public string PromotionId { get; set; }
+
             public string InsertBy { get; set; }
         }
         public class DataRespond

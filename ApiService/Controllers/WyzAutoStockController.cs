@@ -35,7 +35,8 @@ namespace ApiService.Controllers
         //call get token
         private static readonly ObjectCache cache = MemoryCache.Default;
         private const string TokenCacheKey = "WyzAuto_AccessToken";
-
+        [HttpPost]
+        [Route("WyzAuto/RequestNewTokenAsync")]
         /// <summary>
         /// ขอ Token ใหม่จาก API
         /// </summary>
@@ -126,7 +127,7 @@ namespace ApiService.Controllers
         ///// </summary>
         public async Task<string> sendUpdateProductTyreplus()
         {
-            string url = "https://partner.platform.wyzauto.dev/v1/partner/offers:import";
+            string url = "https://partner.platform.wyzauto.io/v1/partner/offers:import";
             // ดึงข้อมูลทั้งหมด
             var productList = await GetProductTyreplusData();
             Guid batchId = Guid.NewGuid(); //เพื่อดู log การรัน batch

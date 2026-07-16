@@ -11,6 +11,10 @@ using System.Web;
 using System.Web.Http;
 using HttpGetAttribute = System.Web.Http.HttpGetAttribute;
 using RouteAttribute = System.Web.Http.RouteAttribute;
+using System.Threading.Tasks;
+using System.DirectoryServices;
+using ApiService.Services;
+using ApiService.Models;
 
 namespace ApiService.Controllers
 {
@@ -1271,6 +1275,23 @@ namespace ApiService.Controllers
             };
             return Json(result);
         }
+        [HttpPost]
+        [Route("Ecatalog/GetProductBySearchGlobal")]
+        [ApiKeyAuthorize]
+        public async Task<IHttpActionResult> GetProductBySearchGlobal(string Keyword) {
+            if (Keyword == null || String.IsNullOrWhiteSpace(Keyword)) {
+                return Ok(new {
+                    Success = false,
+                    Message = "Please input keyword."
+                });
+            }
+
+            SearchService service = new SearchService();
+
+            GlobalSearchResult result = await service.GlobalSearch(Keyword);
+
+            return Ok(result);
+        }
         public class ProductKtypeDataResponse
         {
             public string marketSegmentId { get; set; }
@@ -1284,20 +1305,6 @@ namespace ApiService.Controllers
             public string yearTo { get; set; }
             public string kType { get; set; }
             public string truType { get; set; }
-        }
-        public class ProductSearchVioDataResponse
-        {
-            public string stkcode { get; set; }
-            public string stkcodeDescription { get; set; }
-            public string brand { get; set; }
-            public string makerName { get; set; }
-            public string modelName { get; set; }
-            public string qtyReady { get; set; }
-            public string price { get; set; }
-            public string productGroup { get; set; }
-            public string productLine { get; set; }
-            public string imagePath { get; set; }
-
         }
         public class ProductTabItemCountDataResponse
         {
