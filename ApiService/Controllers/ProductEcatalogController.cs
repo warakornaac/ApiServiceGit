@@ -99,6 +99,7 @@ namespace ApiService.Controllers
                                 productGroup = dr["productGroup"] == DBNull.Value ? "" : dr["productGroup"].ToString(),
                                 productLine = dr["productLine"] == DBNull.Value ? "" : dr["productLine"].ToString(),
                                 imagePath = dr["imagePath"] == DBNull.Value ? "" : dr["imagePath"].ToString(),
+                                fittingDescription = dr["FittingDescription"] == DBNull.Value ? "" : dr["FittingDescription"].ToString()
                             });
                     }
                 }
@@ -353,7 +354,8 @@ namespace ApiService.Controllers
                                     price = dr["price"] == DBNull.Value ? "" : dr["price"].ToString(),
                                     productGroup = dr["productGroupName"] == DBNull.Value ? "" : dr["productGroupName"].ToString(),
                                     productLine = dr["productLineName"] == DBNull.Value ? "" : dr["productLineName"].ToString(),
-                                    imagePath = dr["imagePath"] == DBNull.Value ? "" : dr["imagePath"].ToString()
+                                    imagePath = dr["imagePath"] == DBNull.Value ? "" : dr["imagePath"].ToString(),
+                                    fittingDescription = dr["FittingDescription"] == DBNull.Value ? "" : dr["FittingDescription"].ToString()
                                 });
                         }
                     }
