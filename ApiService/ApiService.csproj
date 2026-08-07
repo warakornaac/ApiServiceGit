@@ -202,12 +202,12 @@
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="MessageHandlers\APIKeyMessageHandler.cs" />
+    <Compile Include="Models\GlobalSearchResult.cs" />
     <Compile Include="Models\ModelData.cs" />
-    <Compile Include="Models\PrefixSearchResult.cs" />
     <Compile Include="Models\ProductSearchVioDataResponse.cs" />
+    <Compile Include="Models\RouteDebugResult.cs" />
     <Compile Include="Models\SearchDictionaryModel.cs" />
     <Compile Include="Models\SearchResponse.cs" />
-    <Compile Include="Models\GlobalSearchResult.cs" />
     <Compile Include="Models\SearchSqlRequest.cs" />
     <Compile Include="Models\TokenMatch.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -216,20 +216,20 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
-    <Compile Include="Repository\SqlRepository.cs" />
+    <Compile Include="Services\AliasResolverService.cs" />
     <Compile Include="Services\AutomotiveTokenizer.cs" />
+    <Compile Include="Services\CategoryExpansionService.cs" />
     <Compile Include="Services\IApiKeyProvider.cs" />
-    <Compile Include="Services\KeywordComparer .cs" />
-    <Compile Include="Services\LongestWordCache.cs" />
     <Compile Include="Services\MeiliSearchClient.cs" />
     <Compile Include="Services\NormalizeService.cs" />
-    <Compile Include="Services\PrefixCache.cs" />
+    <Compile Include="Services\RankingService.cs" />
     <Compile Include="Services\SearchCache.cs" />
     <Compile Include="Services\SearchParser.cs" />
+    <Compile Include="Services\SearchRouterService.cs" />
     <Compile Include="Services\SearchService.cs" />
     <Compile Include="Services\SimpleApiKeyProvider.cs" />
-    <Compile Include="Services\TokenizerCache.cs" />
-    <Compile Include="Services\TokenNode.cs" />
+    <Compile Include="Services\TokenizerNode.cs" />
+    <Compile Include="Services\TrieBuilder.cs" />
     <Compile Include="Services\VerifyApiKey.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -289,6 +289,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
+    <Folder Include="Repository\" />
     <Folder Include="Views\AuthenEcatalog\" />
     <Folder Include="Views\ChatBot\" />
     <Folder Include="Views\Customer\" />

@@ -151,7 +151,7 @@ namespace ApiService.Controllers
             try
             {
                 conn.Open();
-                var cmd = new SqlCommand("P_Save_Ai_Order_Cart_Dev", conn);
+                var cmd = new SqlCommand("P_Save_Ai_Order_Cart", conn);
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@Company", Company);
                 cmd.Parameters.AddWithValue("@Cuscode", Cuscode);

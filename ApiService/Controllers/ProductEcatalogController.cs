@@ -1275,22 +1275,47 @@ namespace ApiService.Controllers
             };
             return Json(result);
         }
-        [HttpPost]
+        [HttpGet]
         [Route("Ecatalog/GetProductBySearchGlobal")]
         [ApiKeyAuthorize]
-        public async Task<IHttpActionResult> GetProductBySearchGlobal(string Keyword) {
+        public async Task<IHttpActionResult> GetProductBySearchGlobal(string Keyword, bool Debug = false) {
             if (Keyword == null || String.IsNullOrWhiteSpace(Keyword)) {
                 return Ok(new {
-                    Success = false,
-                    Message = "Please input keyword."
+                    statusCode = 400,
+                    errorMessage = "Please input keyword.",
+                    result = new object[0]
                 });
             }
 
             SearchService service = new SearchService();
+            GlobalSearchResult result = await service.GlobalSearch(Keyword, Debug);
 
-            GlobalSearchResult result = await service.GlobalSearch(Keyword);
+            if (Debug) {
+                // โหมด debug: คืนรายละเอียดเต็มทั้ง pipeline (TokenDetails, BatchHits, RouteDebug ฯลฯ)
+                // เพื่อ diagnose ว่า tokenize/route ยังไงถึงได้ผลแบบนี้ — โครงสร้างต่างจากโหมดปกติโดยตั้งใจ
+                return Ok(result);
+            }
 
-            return Ok(result);
+            // โหมดปกติ (Debug=false): คืน format เดียวกับ endpoint อื่น ๆ ในระบบ
+            // (GetProductBySearchVio / GetProductBySearchCatagory / GetProductBySearchField)
+            // เพื่อให้ frontend ใช้ parsing logic เดียวกันได้กับทุก endpoint โดยไม่ต้องแยก case
+            return Ok(new {
+                statusCode = result.Success ? 200 : 500,
+                errorMessage = result.Success ? "Success" : (result.Message ?? "Error"),
+                result = result.Items
+            });
+        }
+        /// <summary>
+        /// เรียกหลังจากแก้ไข/เพิ่มคำใน MsSearchDictionary (หรือ re-sync เข้า Meilisearch แล้ว)
+        /// เพื่อล้าง cache ของ Trie ให้ระบบ reload dictionary ใหม่ทันที ไม่ต้องรอ TTL หมดอายุ
+        /// </summary>
+        [HttpPost]
+        [Route("Ecatalog/RefreshSearchDictionaryCache")]
+        [ApiKeyAuthorize]
+        public IHttpActionResult RefreshSearchDictionaryCache() {
+            SearchService service = new SearchService();
+            service.InvalidateDictionaryCache();
+            return Ok(new { Success = true, Message = "Dictionary cache invalidated." });
         }
         public class ProductKtypeDataResponse
         {
