@@ -12,5 +12,6 @@ namespace ApiService.Models
         public string productGroup { get; set; }
         public string productLine { get; set; }
         public string imagePath { get; set; }
+        public string fittingDescription { get; set; }
     }
 }

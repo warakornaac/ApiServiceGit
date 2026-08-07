@@ -919,6 +919,94 @@ namespace ApiService.Controllers
         }
 
 
+        [HttpGet]
+        [Route("Ecatalog/GetPicMeiaPortal")]
+        [ApiKeyAuthorize]
+        public IHttpActionResult GetPicMeiaPortal(string stkcode)
+        {
+            var responseList = new List<GetPictureMediaPortalRespone>();
+            string errorMessage = "Success";
+            if (string.IsNullOrEmpty(stkcode))
+            {
+                return Json(new
+                {
+                    statusCode = 400,
+                    errorMessage = "STKCODE is required",
+                    result = responseList
+                });
+            }
+            try
+            {
+                string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    using (SqlCommand cmd = new SqlCommand("P_Search_Pic_MediaPortal", conn))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.Add("@inSTKCOD", SqlDbType.VarChar, 50).Value = stkcode;
+                        conn.Open();
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                responseList.Add(new GetPictureMediaPortalRespone
+                                {
+                                    Stkcode = reader["Stkcode"] == DBNull.Value ? "" : reader["Stkcode"].ToString(),
+                                    Url = reader["Url"] == DBNull.Value ? "" : reader["Url"].ToString(),
+                                    Filename = reader["Filename"] == DBNull.Value ? "" : reader["Filename"].ToString(),
+                                    Source = reader["Source"] == DBNull.Value ? "" : reader["Source"].ToString()
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch(Exception ex)
+            {
+                errorMessage = ex.Message;
+                return Json(new
+                {
+                    statusCode = 500,
+                    errorMessage = errorMessage,
+                    result = new { }
+                });
+            }
+
+            
+            var result = new
+            {
+                statusCode =
+                errorMessage == "Success"
+                ? 200
+                : 500,
+
+                errorMessage,
+
+                result = responseList
+            };
+
+            if (responseList.Count == 0)
+            {
+                return Json(new
+                {
+                    statusCode = 404,
+                    errorMessage = "Picture not found.",
+                    result = new { }
+                });
+            }
+            var jsonLog = JsonConvert.SerializeObject(new
+            {
+                STKCOD = stkcode
+                //prodGrpId = prodGrpId,
+                //prodLineId = prodLineId,
+            });
+            string jsonReturn = JsonConvert.SerializeObject(result);
+            String lastId = _apiServerService.SaveApiResponse("Ecatalog/GetPicMeiaPortal", jsonLog, "");
+            _apiServerService.UpdateApiRespone(lastId, jsonReturn.ToString());
+
+            return Json(result);
+        }
+
         public class MasterMarkerDataResponse
         {
             public string Id { get; set; }
@@ -1017,6 +1105,13 @@ namespace ApiService.Controllers
             public string tacpaytrm { get; set; }
             public string phone { get; set; }
             public string rating { get; set; }
+        }
+        public class GetPictureMediaPortalRespone
+        {
+            public string Stkcode { get; set; } 
+            public string Url { get; set; }
+            public string Filename { get; set; }
+            public string Source { get; set; }
         }
 
     }

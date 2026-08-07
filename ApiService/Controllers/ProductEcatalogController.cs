@@ -99,6 +99,7 @@ namespace ApiService.Controllers
                                 productGroup = dr["productGroup"] == DBNull.Value ? "" : dr["productGroup"].ToString(),
                                 productLine = dr["productLine"] == DBNull.Value ? "" : dr["productLine"].ToString(),
                                 imagePath = dr["imagePath"] == DBNull.Value ? "" : dr["imagePath"].ToString(),
+                                fittingDescription = dr["FittingDescription"] == DBNull.Value ? "" : dr["FittingDescription"].ToString()
                             });
                     }
                 }
@@ -149,33 +150,27 @@ namespace ApiService.Controllers
                 });
             }
         }
-        private DataTable BuildSearchCatagoryTable(ProductSearchCatagoryDataRequest request) {
-
+        private DataTable BuildSearchCatagoryTable(ProductSearchCatagoryDataRequest request)
+        {
             DataTable dt = new DataTable();
-
             dt.Columns.Add("CategoryFilterType", typeof(string));
             dt.Columns.Add("CategoryFilterValue", typeof(string));
 
-            if (request.productGroupId != null) {
-                foreach (var item in request.productGroupId) {
+            if (request.productGroupId != null)
+                foreach (var item in request.productGroupId)
                     dt.Rows.Add("productGroupId", item);
-                }
-            }
-            if (request.productLineId != null) {
-                foreach (var item in request.productLineId) {
+
+            if (request.productLineId != null)
+                foreach (var item in request.productLineId)
                     dt.Rows.Add("productLineId", item);
-                }
-            }
-            if (request.brandId != null) {
-                foreach (var item in request.brandId) {
+
+            if (request.brandId != null)
+                foreach (var item in request.brandId)
                     dt.Rows.Add("brandId", item);
-                }
-            }
-            if (request.fittingFilter != null) {
-                foreach (var item in request.fittingFilter) {
+
+            if (request.fittingFilter != null)
+                foreach (var item in request.fittingFilter)
                     dt.Rows.Add("fittingFilter", item);
-                }
-            }
 
             return dt;
         }
@@ -245,7 +240,8 @@ namespace ApiService.Controllers
                                     price = dr["price"] == DBNull.Value ? "" : dr["price"].ToString(),
                                     productGroup = dr["productGroupName"] == DBNull.Value ? "" : dr["productGroupName"].ToString(),
                                     productLine = dr["productLineName"] == DBNull.Value ? "" : dr["productLineName"].ToString(),
-                                    imagePath = dr["imagePath"] == DBNull.Value ? "" : dr["imagePath"].ToString()
+                                    imagePath = dr["imagePath"] == DBNull.Value ? "" : dr["imagePath"].ToString(),
+                                    fittingDescription = dr["FittingDescription"] == DBNull.Value ? "" : dr["FittingDescription"].ToString()
                                 });
                         }
                     }
@@ -358,7 +354,8 @@ namespace ApiService.Controllers
                                     price = dr["price"] == DBNull.Value ? "" : dr["price"].ToString(),
                                     productGroup = dr["productGroupName"] == DBNull.Value ? "" : dr["productGroupName"].ToString(),
                                     productLine = dr["productLineName"] == DBNull.Value ? "" : dr["productLineName"].ToString(),
-                                    imagePath = dr["imagePath"] == DBNull.Value ? "" : dr["imagePath"].ToString()
+                                    imagePath = dr["imagePath"] == DBNull.Value ? "" : dr["imagePath"].ToString(),
+                                    fittingDescription = dr["FittingDescription"] == DBNull.Value ? "" : dr["FittingDescription"].ToString()
                                 });
                         }
                     }
