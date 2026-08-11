@@ -1,31 +1,23 @@
-﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web;
-
 namespace ApiService.Models
 {
-    public class SearchResponse
+    /// <summary>
+    /// Generic response wrapper ใช้ห่อผลลัพธ์จาก service layer ต่าง ๆ
+    /// </summary>
+    /// <typeparam name="T">ชนิดของ data ที่ห่อ</typeparam>
+    public class SearchResponse<T>
     {
-        [JsonProperty("hits")]
-        public List<SearchDictionaryModel> hits { get; set; }
-        [JsonProperty("query")]
-        public string query { get; set; }
-        [JsonProperty("processingTimeMs")]
-        public int processingTimeMs { get; set; }
+        public bool Success { get; set; }
+        public string Message { get; set; }
+        public T Data { get; set; }
 
-        public int limit { get; set; }
+        public static SearchResponse<T> Ok(T data, string message = null)
+        {
+            return new SearchResponse<T> { Success = true, Data = data, Message = message };
+        }
 
-        public int offset { get; set; }
-        [JsonProperty("estimatedTotalHits")]
-        public int estimatedTotalHits { get; set; }
-
-        public string requestUid { get; set; }
-
-
-        public SearchResponse() {
-            hits = new List<SearchDictionaryModel>();
+        public static SearchResponse<T> Fail(string message)
+        {
+            return new SearchResponse<T> { Success = false, Data = default(T), Message = message };
         }
     }
 }

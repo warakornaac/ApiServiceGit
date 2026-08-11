@@ -1,13 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web;
-
 namespace ApiService.Models
 {
     public class ProductSearchVioDataResponse
     {
-
         public string stkcode { get; set; }
         public string stkcodeDescription { get; set; }
         public string brand { get; set; }
