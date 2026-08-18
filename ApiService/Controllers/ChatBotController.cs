@@ -1,5 +1,4 @@
-﻿using ApiService.Models;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data.SqlClient;
@@ -12,6 +11,7 @@ using System.Web.Http;
 using Newtonsoft.Json;
 using System.Net.Http.Headers;
 using System.Web.Configuration;
+using ApiService.Models;
 using ApiService.Filters;
 
 namespace ApiService.Controllers

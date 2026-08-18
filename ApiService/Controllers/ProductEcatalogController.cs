@@ -15,25 +15,30 @@ using System.Threading.Tasks;
 using System.DirectoryServices;
 using ApiService.Services;
 using ApiService.Models;
+using System.Net.Http;
 
 namespace ApiService.Controllers
 {
     public class ProductEcatalogController : ApiController
     {
+
         private readonly ApiServerController _apiServerService;
+
+        private static readonly int SqlCommandTimeoutSeconds = int.TryParse(ConfigurationManager.AppSettings["SqlCommandTimeoutSeconds"], out int t) ? t : 120;
 
         public ProductEcatalogController() {
             _apiServerService = new ApiServerController();
         }
         //get kType
-        private List<string> GetKtypeListByCar(string marketSegmentId, string segmentId, string makerId, string rangeId, string bodyId, string engineId, string yearFrom, string yearTo, string driveType) {
-            List<string> ktypeList = new List<string>();
-
+        private List<typeListInfo> GetKtypeListByCar(string marketSegmentId, string segmentId, string makerId, string rangeId, string bodyId, string engineId, string yearFrom, string yearTo, string driveType, string SlmCode, string CusCode, string Company) {
+            List<typeListInfo> ktypeList = new List<typeListInfo>();
+           
             string connString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
 
             using (SqlConnection conn = new SqlConnection(connString))
-            using (SqlCommand cmd = new SqlCommand("P_Search_Ktype_By_Car", conn)) {
+            using (SqlCommand cmd = new SqlCommand("P_Search_Ktype_By_Car_Dev", conn)) {
                 cmd.CommandType = CommandType.StoredProcedure;
+                cmd.CommandTimeout = SqlCommandTimeoutSeconds;
 
                 cmd.Parameters.AddWithValue("@inMarketseId", marketSegmentId);
                 cmd.Parameters.AddWithValue("@inVehicleId", segmentId);
@@ -49,40 +54,86 @@ namespace ApiService.Controllers
 
                 using (SqlDataReader dr = cmd.ExecuteReader()) {
                     while (dr.Read()) {
-                        ktypeList.Add(
-                            dr["kType"].ToString());
+                        ktypeList.Add(new typeListInfo {
+                            KType = dr["kType"] == DBNull.Value ? null : dr["kType"].ToString(),
+                            TruType = dr["truType"] == DBNull.Value ? null : dr["truType"].ToString()
+                        });
                     }
                 }
             }
 
             return ktypeList;
         }
-        //get product
-        private List<ProductSearchVioDataResponse> GetProductsByKtype(List<string> ktypes) {
-            var responseList = new List<ProductSearchVioDataResponse>();
+        private DataTable BuildCompanyTable(List<string> companies) {
+            DataTable dt = new DataTable();
+            dt.Columns.Add("CompanyCode", typeof(string));
 
+            if (companies != null) {
+                foreach (string company in companies) {
+                    if (!string.IsNullOrEmpty(company)) {
+                        dt.Rows.Add(company);
+                    }
+                }
+            }
+            return dt;
+        }
+        //get product
+        private List<ProductSearchVioDataResponse> GetProductsByKtype(List<string> ktypes, List<string> trutypes, List<string> companies) {
+            var responseList = new List<ProductSearchVioDataResponse>();
             string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
 
             // =====================
-            // TVP
+            // TVP 1: Ktype
             // =====================
-
             DataTable dtKtype = new DataTable();
-
             dtKtype.Columns.Add("Ktype", typeof(string));
-
             foreach (string ktype in ktypes) {
-                dtKtype.Rows.Add(
-                    ktype);
+                dtKtype.Rows.Add(ktype);
+            }
+
+            // =====================
+            // TVP 2: TruType 
+            // =====================
+            DataTable dtTruType = new DataTable();
+            dtTruType.Columns.Add("TruType", typeof(string));
+            foreach (string trutype in trutypes) {
+                // กรอง null/empty ออกก่อนใส่ TVP (TruType อาจเป็น null ได้ตามที่เคยเช็ค DBNull ไว้)
+                if (!string.IsNullOrEmpty(trutype)) {
+                    dtTruType.Rows.Add(trutype);
+                }
+            }
+
+            // =====================
+            // TVP 3: Company 
+            // =====================
+            DataTable dtCompany = new DataTable();
+            dtCompany.Columns.Add("CompanyCode", typeof(string));
+            if (companies != null) {
+                foreach (string company in companies) {
+                    // กรอง null/empty ออกก่อนใส่ TVP เช่นเดียวกับ trutype
+                    if (!string.IsNullOrEmpty(company)) {
+                        dtCompany.Rows.Add(company);
+                    }
+                }
             }
 
             using (SqlConnection conn = new SqlConnection(connectionString))
-            using (SqlCommand cmd = new SqlCommand("P_Search_Product_By_Ktype", conn)) {
+            using (SqlCommand cmd = new SqlCommand("P_Search_Product_By_Ktype_Dev", conn)) {
                 cmd.CommandType = CommandType.StoredProcedure;
+                cmd.CommandTimeout = SqlCommandTimeoutSeconds;
 
-                SqlParameter p = cmd.Parameters.AddWithValue("@inKtypeList", dtKtype);
-                p.SqlDbType = SqlDbType.Structured;
-                p.TypeName = "dbo.KtypeListTmp";
+                SqlParameter pKtype = cmd.Parameters.AddWithValue("@inKtypeList", dtKtype);
+                pKtype.SqlDbType = SqlDbType.Structured;
+                pKtype.TypeName = "dbo.KtypeListTmp";
+
+                SqlParameter pTruType = cmd.Parameters.AddWithValue("@inTruTypeList", dtTruType);
+                pTruType.SqlDbType = SqlDbType.Structured;
+                pTruType.TypeName = "dbo.TrutypeListTmp";
+
+                // ★ เพิ่มใหม่: ส่ง TVP Company เข้า SP
+                SqlParameter pCompany = cmd.Parameters.AddWithValue("@inCompanyList", dtCompany);
+                pCompany.SqlDbType = SqlDbType.Structured;
+                pCompany.TypeName = "dbo.CompanyListTmp";
 
                 conn.Open();
                 using (SqlDataReader dr = cmd.ExecuteReader()) {
@@ -104,28 +155,36 @@ namespace ApiService.Controllers
                     }
                 }
             }
-
             return responseList;
         }
         [HttpGet]
         [Route("Ecatalog/GetProductBySearchVio")]
         [ApiKeyAuthorize]
-        public IHttpActionResult GetProductBySearchVio(string marketSegmentId, string segmentId, string makerId, string rangeId, string bodyId, string engineId, string yearFrom, string yearTo, string driveType) {
+        public IHttpActionResult GetProductBySearchVio(string marketSegmentId, string segmentId, string makerId, string rangeId, string bodyId, string engineId, string yearFrom, string yearTo, string driveType, string SlmCode, string CusCode, [FromUri] List<string> Company = null) {
             try {
-                // หา Ktype
-                List<string> ktypes =
-                    GetKtypeListByCar(
-                        marketSegmentId,
-                        segmentId,
-                        makerId,
-                        rangeId,
-                        bodyId,
-                        engineId,
-                        yearFrom,
-                        yearTo,
-                        driveType);
 
-                if (ktypes.Count == 0) {
+                string companyParam = Company.Any()
+                    ? string.Join(",", Company)
+                    : string.Empty;
+
+                // หา Ktype
+                List<typeListInfo> ktypeInfoList =
+                GetKtypeListByCar(
+                      marketSegmentId,
+                      segmentId,
+                      makerId,
+                      rangeId,
+                      bodyId,
+                      engineId,
+                      yearFrom,
+                      yearTo,
+                      driveType,
+                      SlmCode, 
+                      CusCode,
+                      companyParam
+                      );
+
+                if (ktypeInfoList.Count == 0) {
                     return Json(new {
                         statusCode = 200,
                         errorMessage = "Ktype not found",
@@ -133,8 +192,15 @@ namespace ApiService.Controllers
                     });
                 }
 
-                // หา Product
-                var products = GetProductsByKtype(ktypes.Distinct().ToList());
+                List<typeListInfo> distinctKtypeInfoList = ktypeInfoList
+                                                            .GroupBy(x => x.KType)
+                                                            .Select(g => g.First())
+                                                            .ToList();
+
+                List<string> ktypeList = distinctKtypeInfoList.Select(x => x.KType).ToList();
+                List<string> trutypeList = distinctKtypeInfoList.Select(x => x.TruType).ToList();
+
+                var products = GetProductsByKtype(ktypeList, trutypeList, Company);
 
                 return Json(new {
                     statusCode = 200,
@@ -174,75 +240,114 @@ namespace ApiService.Controllers
 
             return dt;
         }
+    
         [HttpPost]
         [Route("Ecatalog/GetProductBySearchCatagory")]
         [ApiKeyAuthorize]
         public IHttpActionResult GetProductBySearchCatagory([FromBody] ProductSearchCatagoryDataRequest request) {
             var responseList = new List<ProductSearchVioDataResponse>();
-
             string errorMessage = "Success";
 
-            // Validate Request
             if (request == null) {
-                return Json(new {
-                    statusCode = 400,
-                    errorMessage = "Request is required",
-                    result = responseList
-                });
+                return Json(new { statusCode = 400, errorMessage = "Request is required", result = responseList });
             }
 
             if (
                 (request.productGroupId == null || !request.productGroupId.Any()) &&
                 (request.productLineId == null || !request.productLineId.Any()) &&
                 (request.brandId == null || !request.brandId.Any())
-            //(request.fittingFilter == null || !request.fittingFilter.Any())
             ) {
-                return Json(new {
-                    statusCode = 400,
-                    errorMessage = "At least one filter is required",
-                    result = responseList
-                });
+                return Json(new { statusCode = 400, errorMessage = "At least one filter is required", result = responseList });
             }
 
             try {
+                bool hasVehicleFilter = HasVehicleFilter(request);
+
+                List<string> ktypeList = null;
+                List<string> trutypeList = null;
+
+                if (hasVehicleFilter) {
+                    string companyParam = request.Company != null
+                        ? string.Join(",", request.Company)
+                        : string.Empty;
+
+                    List<typeListInfo> ktypeInfoList = GetKtypeListByCar(
+                        request.marketSegmentId, request.segmentId, request.makerId,
+                        request.rangeId, request.bodyId, request.engineId,
+                        request.yearFrom, request.yearTo, request.driveType,
+                        request.SlmCode, request.CusCode, companyParam
+                    );
+
+                    if (ktypeInfoList.Count == 0) {
+                        return Json(new {
+                            statusCode = 200,
+                            errorMessage = "Ktype not found",
+                            result = responseList
+                        });
+                    }
+
+                    List<typeListInfo> distinctKtypeInfoList = ktypeInfoList
+                        .GroupBy(x => x.KType)
+                        .Select(g => g.First())
+                        .ToList();
+
+                    ktypeList = distinctKtypeInfoList.Select(x => x.KType).ToList();
+                    trutypeList = distinctKtypeInfoList.Select(x => x.TruType).ToList();
+                }
+
                 DataTable tvp = BuildSearchCatagoryTable(request);
+                DataTable tvpKtype = BuildKtypeTable(ktypeList);
+                DataTable tvpTruType = BuildTruTypeTable(trutypeList);
+                DataTable tvpCompany = BuildCompanyTable(request.Company); 
+
                 string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
 
                 using (SqlConnection conn = new SqlConnection(connectionString))
-                using (SqlCommand cmd = new SqlCommand("P_Search_Product_By_Catagory", conn)) {
-                    cmd.CommandType =
-                        CommandType.StoredProcedure;
+                using (SqlCommand cmd = new SqlCommand("P_Search_Product_By_Catagory_Dev", conn)) {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.CommandTimeout = SqlCommandTimeoutSeconds;
 
-                    SqlParameter param =
-                        cmd.Parameters.AddWithValue(
-                            "@inCategoryFilter",
-                            tvp);
+                    SqlParameter param = cmd.Parameters.AddWithValue("@inCategoryFilter", tvp);
+                    param.SqlDbType = SqlDbType.Structured;
+                    param.TypeName = "dbo.CategoryFilterType";
 
-                    param.SqlDbType =
-                        SqlDbType.Structured;
+                    SqlParameter pKtype = cmd.Parameters.AddWithValue("@inKtypeList", tvpKtype);
+                    pKtype.SqlDbType = SqlDbType.Structured;
+                    pKtype.TypeName = "dbo.KtypeListTmp";
 
-                    param.TypeName =
-                        "dbo.CategoryFilterType";
+                    SqlParameter pTruType = cmd.Parameters.AddWithValue("@inTruTypeList", tvpTruType);
+                    pTruType.SqlDbType = SqlDbType.Structured;
+                    pTruType.TypeName = "dbo.TrutypeListTmp";
+
+                    // ★★★ เพิ่มใหม่ตามที่ต้องการ ★★★
+                    SqlParameter pCompany = cmd.Parameters.AddWithValue("@inCompanyList", tvpCompany);
+                    pCompany.SqlDbType = SqlDbType.Structured;
+                    pCompany.TypeName = "dbo.CompanyListTmp";
+
+                    cmd.Parameters.AddWithValue("@inSlmCode",
+                        string.IsNullOrEmpty(request.SlmCode) ? (object)DBNull.Value : request.SlmCode);
+
+                    cmd.Parameters.AddWithValue("@inCusCode",
+                        string.IsNullOrEmpty(request.CusCode) ? (object)DBNull.Value : request.CusCode);
+                    // ★★★ จบส่วนที่เพิ่ม ★★★
 
                     conn.Open();
 
-                    using (SqlDataReader dr =
-                        cmd.ExecuteReader()) {
+                    using (SqlDataReader dr = cmd.ExecuteReader()) {
                         while (dr.Read()) {
-                            responseList.Add(
-                                new ProductSearchVioDataResponse {
-                                    stkcode = dr["stkcode"] == DBNull.Value ? "" : dr["stkcode"].ToString(),
-                                    stkcodeDescription = dr["stkcodeDescription"] == DBNull.Value ? "" : dr["stkcodeDescription"].ToString(),
-                                    brand = dr["BrandName"] == DBNull.Value ? "" : dr["BrandName"].ToString(),
-                                    makerName = dr["makerName"] == DBNull.Value ? "" : dr["makerName"].ToString(),
-                                    modelName = dr["modelName"] == DBNull.Value ? "" : dr["modelName"].ToString(),
-                                    qtyReady = dr["qtyReady"] == DBNull.Value ? "" : dr["qtyReady"].ToString(),
-                                    price = dr["price"] == DBNull.Value ? "" : dr["price"].ToString(),
-                                    productGroup = dr["productGroupName"] == DBNull.Value ? "" : dr["productGroupName"].ToString(),
-                                    productLine = dr["productLineName"] == DBNull.Value ? "" : dr["productLineName"].ToString(),
-                                    imagePath = dr["imagePath"] == DBNull.Value ? "" : dr["imagePath"].ToString(),
-                                    fittingDescription = dr["FittingDescription"] == DBNull.Value ? "" : dr["FittingDescription"].ToString()
-                                });
+                            responseList.Add(new ProductSearchVioDataResponse {
+                                stkcode = dr["stkcode"] == DBNull.Value ? "" : dr["stkcode"].ToString(),
+                                stkcodeDescription = dr["stkcodeDescription"] == DBNull.Value ? "" : dr["stkcodeDescription"].ToString(),
+                                brand = dr["BrandName"] == DBNull.Value ? "" : dr["BrandName"].ToString(),
+                                makerName = dr["makerName"] == DBNull.Value ? "" : dr["makerName"].ToString(),
+                                modelName = dr["modelName"] == DBNull.Value ? "" : dr["modelName"].ToString(),
+                                qtyReady = dr["qtyReady"] == DBNull.Value ? "" : dr["qtyReady"].ToString(),
+                                price = dr["price"] == DBNull.Value ? "" : dr["price"].ToString(),
+                                productGroup = dr["productGroupName"] == DBNull.Value ? "" : dr["productGroupName"].ToString(),
+                                productLine = dr["productLineName"] == DBNull.Value ? "" : dr["productLineName"].ToString(),
+                                imagePath = dr["imagePath"] == DBNull.Value ? "" : dr["imagePath"].ToString(),
+                                fittingDescription = dr["FittingDescription"] == DBNull.Value ? "" : dr["FittingDescription"].ToString()
+                            });
                         }
                     }
                 }
@@ -252,18 +357,14 @@ namespace ApiService.Controllers
             }
 
             var result = new {
-                statusCode =
-                    errorMessage == "Success"
-                    ? 200
-                    : 500,
-
+                statusCode = errorMessage == "Success" ? 200 : 500,
                 errorMessage,
-
                 result = responseList
             };
 
             return Json(result);
         }
+
         [HttpPost]
         [Route("Ecatalog/GetProductBySearchCatagoryPostman")]
         [ApiKeyAuthorize]
@@ -326,7 +427,7 @@ namespace ApiService.Controllers
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 using (SqlCommand cmd = new SqlCommand("P_Search_Product_By_Field", conn)) {
                     cmd.CommandType = CommandType.StoredProcedure;
-
+                    cmd.CommandTimeout = SqlCommandTimeoutSeconds;
                     //----------------------------------------
                     // Search Text
                     //----------------------------------------
@@ -1314,6 +1415,51 @@ namespace ApiService.Controllers
             service.InvalidateDictionaryCache();
             return Ok(new { Success = true, Message = "Dictionary cache invalidated." });
         }
+        // เช็คว่า request มีการส่งเงื่อนไขรุ่นรถมาไหม (แม้แค่ field เดียวก็ถือว่ามี)
+        private bool HasVehicleFilter(ProductSearchCatagoryDataRequest request) {
+            return !string.IsNullOrEmpty(request.marketSegmentId)
+                || !string.IsNullOrEmpty(request.segmentId)
+                || !string.IsNullOrEmpty(request.makerId)
+                || !string.IsNullOrEmpty(request.rangeId)
+                || !string.IsNullOrEmpty(request.bodyId)
+                || !string.IsNullOrEmpty(request.engineId)
+                || !string.IsNullOrEmpty(request.yearFrom)
+                || !string.IsNullOrEmpty(request.yearTo)
+                || !string.IsNullOrEmpty(request.driveType);
+        }
+
+        // สร้าง TVP ktype - ถ้า ktypes เป็น null (ไม่มีเงื่อนไขรถ) จะได้ตารางว่าง = SP จะไม่กรอง
+        private DataTable BuildKtypeTable(List<string> ktypes) {
+            DataTable dt = new DataTable();
+            dt.Columns.Add("Ktype", typeof(string));
+
+            if (ktypes != null) {
+                foreach (string ktype in ktypes) {
+                    dt.Rows.Add(ktype);
+                }
+            }
+            return dt;
+        }
+
+        // สร้าง TVP trutype - เช่นเดียวกับ ktype
+        private DataTable BuildTruTypeTable(List<string> trutypes) {
+            DataTable dt = new DataTable();
+            dt.Columns.Add("TruType", typeof(string));
+
+            if (trutypes != null) {
+                foreach (string trutype in trutypes) {
+                    if (!string.IsNullOrEmpty(trutype)) {
+                        dt.Rows.Add(trutype);
+                    }
+                }
+            }
+            return dt;
+        }
+        public class typeListInfo
+        {
+            public string KType { get; set; }
+            public string TruType { get; set; }
+        }
         public class ProductKtypeDataResponse
         {
             public string marketSegmentId { get; set; }
@@ -1438,6 +1584,19 @@ namespace ApiService.Controllers
             public List<string> brandId { get; set; }
 
             public List<string> fittingFilter { get; set; }
+            public string SlmCode { get; set; }
+            public string CusCode { get; set; }
+            public List<string> Company { get; set; }
+
+            public string marketSegmentId { get; set; }
+            public string segmentId { get; set; }
+            public string makerId { get; set; }
+            public string rangeId { get; set; }
+            public string bodyId { get; set; }
+            public string engineId { get; set; }
+            public string yearFrom { get; set; }
+            public string yearTo { get; set; }
+            public string driveType { get; set; }
         }
         public class ProductSearchFieldDataRequest
         {
@@ -1466,8 +1625,6 @@ namespace ApiService.Controllers
             public string insertedBy { get; set; }
             public string updatedDate { get; set; }
             public string updatedBy { get; set; }
-
-
         }
         public class CartAddResponse
         {

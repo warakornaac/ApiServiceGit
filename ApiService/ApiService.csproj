@@ -188,19 +188,23 @@
     <Compile Include="Controllers\HappyTrackingController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\ItemsController.cs" />
+    <Compile Include="Controllers\JobController.cs" />
     <Compile Include="Controllers\LineController.cs" />
     <Compile Include="Controllers\MasterEcatalogController.cs" />
     <Compile Include="Controllers\ProductEcatalogController.cs" />
     <Compile Include="Controllers\SaleOrderController.cs" />
     <Compile Include="Controllers\ScgController.cs" />
     <Compile Include="Controllers\SmsController.cs" />
+    <Compile Include="Controllers\StockJobController.cs" />
     <Compile Include="Controllers\TechdocController.cs" />
     <Compile Include="Controllers\UploadController.cs" />
     <Compile Include="Controllers\WyzAutoStockController.cs" />
+    <Compile Include="DAL\StockRepository.cs" />
     <Compile Include="Filters\ApiKeyAuthorizeAttribute.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
+    <Compile Include="Jobs\StockSyncJob.cs" />
     <Compile Include="MessageHandlers\APIKeyMessageHandler.cs" />
     <Compile Include="Models\GlobalSearchResult.cs" />
     <Compile Include="Models\ModelData.cs" />
@@ -209,6 +213,7 @@
     <Compile Include="Models\SearchDictionaryModel.cs" />
     <Compile Include="Models\SearchResponse.cs" />
     <Compile Include="Models\SearchSqlRequest.cs" />
+    <Compile Include="Models\StockItem.cs" />
     <Compile Include="Models\TokenMatch.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Settings.Designer.cs">
@@ -221,6 +226,7 @@
     <Compile Include="Services\CategoryExpansionService.cs" />
     <Compile Include="Services\IApiKeyProvider.cs" />
     <Compile Include="Services\MeiliSearchClient.cs" />
+    <Compile Include="Services\MeilisearchService.cs" />
     <Compile Include="Services\NormalizeService.cs" />
     <Compile Include="Services\RankingService.cs" />
     <Compile Include="Services\SearchCache.cs" />
@@ -228,6 +234,7 @@
     <Compile Include="Services\SearchRouterService.cs" />
     <Compile Include="Services\SearchService.cs" />
     <Compile Include="Services\SimpleApiKeyProvider.cs" />
+    <Compile Include="Services\StockCacheService.cs" />
     <Compile Include="Services\TokenizerNode.cs" />
     <Compile Include="Services\TrieBuilder.cs" />
     <Compile Include="Services\VerifyApiKey.cs" />
@@ -298,12 +305,15 @@
     <Folder Include="Views\HappyDelivery\" />
     <Folder Include="Views\HappyTracking\" />
     <Folder Include="Views\Items\" />
+    <Folder Include="Views\Job\" />
     <Folder Include="Views\Line\" />
     <Folder Include="Views\MasterEcatalog\" />
     <Folder Include="Views\ProductCatalog\" />
     <Folder Include="Views\SaleOrder\" />
     <Folder Include="Views\SearchService\" />
     <Folder Include="Views\Sms\" />
+    <Folder Include="Views\StockJob\" />
+    <Folder Include="Views\Stock\" />
     <Folder Include="Views\Techdoc\" />
     <Folder Include="Views\Upload\" />
     <Folder Include="Views\WyzAutoStock\" />
