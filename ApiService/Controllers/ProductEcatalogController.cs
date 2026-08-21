@@ -465,7 +465,7 @@ namespace ApiService.Controllers
                 string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
 
                 using (SqlConnection conn = new SqlConnection(connectionString))
-                using (SqlCommand cmd = new SqlCommand("P_Search_Product_By_Field_Dev", conn)) {
+                using (SqlCommand cmd = new SqlCommand("P_Search_Product_By_Field", conn)) {
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.CommandTimeout = SqlCommandTimeoutSeconds;
 
