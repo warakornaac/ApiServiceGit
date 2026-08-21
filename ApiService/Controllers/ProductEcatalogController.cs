@@ -346,7 +346,10 @@ namespace ApiService.Controllers
                                 productGroup = dr["productGroupName"] == DBNull.Value ? "" : dr["productGroupName"].ToString(),
                                 productLine = dr["productLineName"] == DBNull.Value ? "" : dr["productLineName"].ToString(),
                                 imagePath = dr["imagePath"] == DBNull.Value ? "" : dr["imagePath"].ToString(),
-                                fittingDescription = dr["FittingDescription"] == DBNull.Value ? "" : dr["FittingDescription"].ToString()
+                                fittingDescription = dr["FittingDescription"] == DBNull.Value ? "" : dr["FittingDescription"].ToString(),
+                                slmCode = request.SlmCode,
+                                cusCode = request.CusCode,
+                                company = request.Company
                             });
                         }
                     }
@@ -502,7 +505,11 @@ namespace ApiService.Controllers
                                     productGroup = dr["productGroupName"] == DBNull.Value ? "" : dr["productGroupName"].ToString(),
                                     productLine = dr["productLineName"] == DBNull.Value ? "" : dr["productLineName"].ToString(),
                                     imagePath = dr["imagePath"] == DBNull.Value ? "" : dr["imagePath"].ToString(),
-                                    fittingDescription = dr["FittingDescription"] == DBNull.Value ? "" : dr["FittingDescription"].ToString()
+                                    fittingDescription = dr["FittingDescription"] == DBNull.Value ? "" : dr["FittingDescription"].ToString(),
+                                    
+                                    slmCode = request.SlmCode,
+                                    cusCode = request.CusCode,
+                                    company = request.Company
                                 });
                         }
                     }
