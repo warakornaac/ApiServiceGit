@@ -346,7 +346,10 @@ namespace ApiService.Controllers
                                 productGroup = dr["productGroupName"] == DBNull.Value ? "" : dr["productGroupName"].ToString(),
                                 productLine = dr["productLineName"] == DBNull.Value ? "" : dr["productLineName"].ToString(),
                                 imagePath = dr["imagePath"] == DBNull.Value ? "" : dr["imagePath"].ToString(),
-                                fittingDescription = dr["FittingDescription"] == DBNull.Value ? "" : dr["FittingDescription"].ToString()
+                                fittingDescription = dr["FittingDescription"] == DBNull.Value ? "" : dr["FittingDescription"].ToString(),
+                                slmCode = request.SlmCode,
+                                cusCode = request.CusCode,
+                                company = request.Company
                             });
                         }
                     }
@@ -390,62 +393,86 @@ namespace ApiService.Controllers
         [HttpPost]
         [Route("Ecatalog/GetProductBySearchField")]
         [ApiKeyAuthorize]
-        public IHttpActionResult GetProductBySearchField([FromBody] ProductSearchFieldDataRequest request) {
+        public IHttpActionResult GetProductBySearchField([FromBody] ProductSearchFieldDataRequest request)
+        {
             var responseList = new List<ProductSearchVioDataResponse>();
 
             string errorMessage = "Success";
 
-            if (request == null) {
-                return Json(new {
+            if (request == null)
+            {
+                return Json(new
+                {
                     statusCode = 400,
                     errorMessage = "Request is null",
                     result = responseList
                 });
             }
 
-            if (String.IsNullOrWhiteSpace(request.searchText)) {
-                return Json(new {
+            if (String.IsNullOrWhiteSpace(request.searchText))
+            {
+                return Json(new
+                {
                     statusCode = 400,
                     errorMessage = "SearchText is required",
                     result = responseList
                 });
             }
 
-            if (request.searchFields == null ||
-                !request.searchFields.Any()) {
-                return Json(new {
+            if (request.searchFields == null || !request.searchFields.Any())
+            {
+                return Json(new
+                {
                     statusCode = 400,
                     errorMessage = "SearchFields is required",
                     result = responseList
                 });
             }
 
-            try {
+            try
+            {
                 DataTable tvp = BuildSearchFieldTable(request);
                 string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
 
                 using (SqlConnection conn = new SqlConnection(connectionString))
-                using (SqlCommand cmd = new SqlCommand("P_Search_Product_By_Field", conn)) {
+                using (SqlCommand cmd = new SqlCommand("P_Search_Product_By_Field", conn))
+                {
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.CommandTimeout = SqlCommandTimeoutSeconds;
-                    //----------------------------------------
-                    // Search Text
-                    //----------------------------------------
 
                     cmd.Parameters.Add("@inSearchText", SqlDbType.VarChar, 200).Value = request.searchText;
 
-                    //----------------------------------------
-                    // TVP
-                    //----------------------------------------
                     SqlParameter tvpParam = cmd.Parameters.AddWithValue("@inSearchField", tvp);
                     tvpParam.SqlDbType = SqlDbType.Structured;
                     tvpParam.TypeName = "dbo.SearchFieldType";
+
+                    // KtypeList (ว่าง)
+                    DataTable ktypeTable = new DataTable();
+                    ktypeTable.Columns.Add("Ktype", typeof(string));
+                    SqlParameter ktypeParam = cmd.Parameters.AddWithValue("@inKtypeList", ktypeTable);
+                    ktypeParam.SqlDbType = SqlDbType.Structured;
+                    ktypeParam.TypeName = "dbo.KtypeListTmp";
+
+                    // TruTypeList (ว่าง)
+                    DataTable truTypeTable = new DataTable();
+                    truTypeTable.Columns.Add("TruType", typeof(string));
+                    SqlParameter truTypeParam = cmd.Parameters.AddWithValue("@inTruTypeList", truTypeTable);
+                    truTypeParam.SqlDbType = SqlDbType.Structured;
+                    truTypeParam.TypeName = "dbo.TrutypeListTmp";
+
+                    // CusCode
+                    cmd.Parameters.Add("@inCuscode", SqlDbType.VarChar, 20).Value =
+                        string.IsNullOrEmpty(request.CusCode) ? (object)DBNull.Value : request.CusCode;
+
                     conn.Open();
 
-                    using (SqlDataReader dr = cmd.ExecuteReader()) {
-                        while (dr.Read()) {
+                    using (SqlDataReader dr = cmd.ExecuteReader())
+                    {
+                        while (dr.Read())
+                        {
                             responseList.Add(
-                                new ProductSearchVioDataResponse {
+                                new ProductSearchVioDataResponse
+                                {
                                     stkcode = dr["stkcode"] == DBNull.Value ? "" : dr["stkcode"].ToString(),
                                     stkcodeDescription = dr["stkcodeDescription"] == DBNull.Value ? "" : dr["stkcodeDescription"].ToString(),
                                     brand = dr["BrandName"] == DBNull.Value ? "" : dr["BrandName"].ToString(),
@@ -456,31 +483,30 @@ namespace ApiService.Controllers
                                     productGroup = dr["productGroupName"] == DBNull.Value ? "" : dr["productGroupName"].ToString(),
                                     productLine = dr["productLineName"] == DBNull.Value ? "" : dr["productLineName"].ToString(),
                                     imagePath = dr["imagePath"] == DBNull.Value ? "" : dr["imagePath"].ToString(),
-                                    fittingDescription = dr["FittingDescription"] == DBNull.Value ? "" : dr["FittingDescription"].ToString()
+                                    fittingDescription = dr["FittingDescription"] == DBNull.Value ? "" : dr["FittingDescription"].ToString(),
+                                    slmCode = request.SlmCode,
+                                    cusCode = request.CusCode,
+                                    company = request.Company
                                 });
                         }
                     }
                 }
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
                 errorMessage = ex.Message;
             }
 
-            var result = new {
-                statusCode =
-                    errorMessage == "Success"
-                    ? 200
-                    : 500,
-
+            var result = new
+            {
+                statusCode = errorMessage == "Success" ? 200 : 500,
                 errorMessage,
-
                 result = responseList
             };
             var json = JsonConvert.SerializeObject(responseList);
             System.Diagnostics.Debug.WriteLine(json);
             return Json(result);
-        }
-        //get count by tab
+        }        //get count by tab
         [HttpGet]
         [Route("Ecatalog/GetTabItemCountProduct")]
         [ApiKeyAuthorize]
@@ -1602,7 +1628,18 @@ namespace ApiService.Controllers
         {
             public string searchText { get; set; }
             public List<string> searchFields { get; set; }
-
+            public string marketSegmentId { get; set; }
+            public string segmentId { get; set; }
+            public string makerId { get; set; }
+            public string rangeId { get; set; }
+            public string bodyId { get; set; }
+            public string engineId { get; set; }
+            public string yearFrom { get; set; }
+            public string yearTo { get; set; }
+            public string driveType { get; set; }
+            public string SlmCode { get; set; }
+            public string CusCode { get; set; }
+            public List<string> Company { get; set; }
         }
         public class OrderCartProductResponse
         {

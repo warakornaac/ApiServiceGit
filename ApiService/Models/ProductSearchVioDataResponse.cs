@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace ApiService.Models
 {
     public class ProductSearchVioDataResponse
@@ -13,5 +15,8 @@ namespace ApiService.Models
         public string productLine { get; set; }
         public string imagePath { get; set; }
         public string fittingDescription { get; set; }
+        public string slmCode { get; set; }
+        public string cusCode { get; set; }
+        public List<string> company { get; set; }
     }
 }
