@@ -36,7 +36,7 @@ namespace ApiService.Controllers
             string connString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
 
             using (SqlConnection conn = new SqlConnection(connString))
-            using (SqlCommand cmd = new SqlCommand("P_Search_Ktype_By_Car_Dev", conn)) {
+            using (SqlCommand cmd = new SqlCommand("P_Search_Ktype_By_Car", conn)) {
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.CommandTimeout = SqlCommandTimeoutSeconds;
 
@@ -118,7 +118,7 @@ namespace ApiService.Controllers
             }
 
             using (SqlConnection conn = new SqlConnection(connectionString))
-            using (SqlCommand cmd = new SqlCommand("P_Search_Product_By_Ktype_Dev", conn)) {
+            using (SqlCommand cmd = new SqlCommand("P_Search_Product_By_Ktype", conn)) {
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.CommandTimeout = SqlCommandTimeoutSeconds;
 
@@ -303,7 +303,7 @@ namespace ApiService.Controllers
                 string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
 
                 using (SqlConnection conn = new SqlConnection(connectionString))
-                using (SqlCommand cmd = new SqlCommand("P_Search_Product_By_Catagory_Dev", conn)) {
+                using (SqlCommand cmd = new SqlCommand("P_Search_Product_By_Catagory", conn)) {
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.CommandTimeout = SqlCommandTimeoutSeconds;
 
@@ -392,7 +392,6 @@ namespace ApiService.Controllers
         [ApiKeyAuthorize]
         public IHttpActionResult GetProductBySearchField([FromBody] ProductSearchFieldDataRequest request) {
             var responseList = new List<ProductSearchVioDataResponse>();
-
             string errorMessage = "Success";
 
             if (request == null) {
@@ -411,8 +410,7 @@ namespace ApiService.Controllers
                 });
             }
 
-            if (request.searchFields == null ||
-                !request.searchFields.Any()) {
+            if (request.searchFields == null || !request.searchFields.Any()) {
                 return Json(new {
                     statusCode = 400,
                     errorMessage = "SearchFields is required",
@@ -421,25 +419,73 @@ namespace ApiService.Controllers
             }
 
             try {
+                bool hasVehicleFilter = HasVehicleFieldFilter(request);
+                List<string> ktypeList = null;
+                List<string> trutypeList = null;
+
+                if (hasVehicleFilter) {
+                    string companyParam = request.Company != null
+                        ? string.Join(",", request.Company)
+                        : string.Empty;
+
+                    List<typeListInfo> ktypeInfoList = GetKtypeListByCar(
+                        request.marketSegmentId,
+                        request.segmentId,
+                        request.makerId,
+                        request.rangeId,
+                        request.bodyId,
+                        request.engineId,
+                        request.yearFrom,
+                        request.yearTo,
+                        request.driveType,
+                        request.SlmCode,
+                        request.CusCode,
+                        companyParam
+                    );
+
+                    // ★ ลบเงื่อนไข early-return ออก
+                    // แม้หา ktype ไม่เจอ (ktypeInfoList.Count == 0) ก็ไม่หยุด เพราะ SP รองรับ ktype/trutype ว่างได้
+                    // (SP จะไม่กรอง ktype แล้วค้นหาต่อด้วย searchText/searchField ตามปกติ)
+
+                    List<typeListInfo> distinctKtypeInfoList = ktypeInfoList
+                        .GroupBy(x => x.KType)
+                        .Select(g => g.First())
+                        .ToList();
+
+                    // ถ้า ktypeInfoList ว่าง -> distinctKtypeInfoList ก็จะว่างตาม -> ได้ list ว่างเปล่า (ไม่ error)
+                    ktypeList = distinctKtypeInfoList.Select(x => x.KType).ToList();
+                    trutypeList = distinctKtypeInfoList.Select(x => x.TruType).ToList();
+                }
+                // hasVehicleFilter = false -> ktypeList/trutypeList ยังเป็น null -> BuildKtypeTable/BuildTruTypeTable จะสร้างตารางว่าง
+
                 DataTable tvp = BuildSearchFieldTable(request);
+                DataTable tvpKtype = BuildKtypeTable(ktypeList);
+                DataTable tvpTruType = BuildTruTypeTable(trutypeList);
+
                 string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
 
                 using (SqlConnection conn = new SqlConnection(connectionString))
-                using (SqlCommand cmd = new SqlCommand("P_Search_Product_By_Field", conn)) {
+                using (SqlCommand cmd = new SqlCommand("P_Search_Product_By_Field_Dev", conn)) {
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.CommandTimeout = SqlCommandTimeoutSeconds;
-                    //----------------------------------------
-                    // Search Text
-                    //----------------------------------------
 
                     cmd.Parameters.Add("@inSearchText", SqlDbType.VarChar, 200).Value = request.searchText;
 
-                    //----------------------------------------
-                    // TVP
-                    //----------------------------------------
                     SqlParameter tvpParam = cmd.Parameters.AddWithValue("@inSearchField", tvp);
                     tvpParam.SqlDbType = SqlDbType.Structured;
                     tvpParam.TypeName = "dbo.SearchFieldType";
+
+                    SqlParameter pKtype = cmd.Parameters.AddWithValue("@inKtypeList", tvpKtype);
+                    pKtype.SqlDbType = SqlDbType.Structured;
+                    pKtype.TypeName = "dbo.KtypeListTmp";
+
+                    SqlParameter pTruType = cmd.Parameters.AddWithValue("@inTruTypeList", tvpTruType);
+                    pTruType.SqlDbType = SqlDbType.Structured;
+                    pTruType.TypeName = "dbo.TrutypeListTmp";
+
+                    cmd.Parameters.AddWithValue("@inCuscode",
+                        string.IsNullOrEmpty(request.CusCode) ? "111B0005" : request.CusCode);
+
                     conn.Open();
 
                     using (SqlDataReader dr = cmd.ExecuteReader()) {
@@ -467,13 +513,8 @@ namespace ApiService.Controllers
             }
 
             var result = new {
-                statusCode =
-                    errorMessage == "Success"
-                    ? 200
-                    : 500,
-
+                statusCode = errorMessage == "Success" ? 200 : 500,
                 errorMessage,
-
                 result = responseList
             };
             var json = JsonConvert.SerializeObject(responseList);
@@ -1428,6 +1469,18 @@ namespace ApiService.Controllers
                 || !string.IsNullOrEmpty(request.driveType);
         }
 
+        private bool HasVehicleFieldFilter(ProductSearchFieldDataRequest request) {
+            return !string.IsNullOrEmpty(request.marketSegmentId)
+                || !string.IsNullOrEmpty(request.segmentId)
+                || !string.IsNullOrEmpty(request.makerId)
+                || !string.IsNullOrEmpty(request.rangeId)
+                || !string.IsNullOrEmpty(request.bodyId)
+                || !string.IsNullOrEmpty(request.engineId)
+                || !string.IsNullOrEmpty(request.yearFrom)
+                || !string.IsNullOrEmpty(request.yearTo)
+                || !string.IsNullOrEmpty(request.driveType);
+        }
+
         // สร้าง TVP ktype - ถ้า ktypes เป็น null (ไม่มีเงื่อนไขรถ) จะได้ตารางว่าง = SP จะไม่กรอง
         private DataTable BuildKtypeTable(List<string> ktypes) {
             DataTable dt = new DataTable();
@@ -1578,16 +1631,12 @@ namespace ApiService.Controllers
         public class ProductSearchCatagoryDataRequest
         {
             public List<string> productGroupId { get; set; }
-
             public List<string> productLineId { get; set; }
-
             public List<string> brandId { get; set; }
-
             public List<string> fittingFilter { get; set; }
             public string SlmCode { get; set; }
             public string CusCode { get; set; }
             public List<string> Company { get; set; }
-
             public string marketSegmentId { get; set; }
             public string segmentId { get; set; }
             public string makerId { get; set; }
@@ -1602,6 +1651,18 @@ namespace ApiService.Controllers
         {
             public string searchText { get; set; }
             public List<string> searchFields { get; set; }
+            public string SlmCode { get; set; }
+            public string CusCode { get; set; }
+            public List<string> Company { get; set; }
+            public string marketSegmentId { get; set; }
+            public string segmentId { get; set; }
+            public string makerId { get; set; }
+            public string rangeId { get; set; }
+            public string bodyId { get; set; }
+            public string engineId { get; set; }
+            public string yearFrom { get; set; }
+            public string yearTo { get; set; }
+            public string driveType { get; set; }
 
         }
         public class OrderCartProductResponse
