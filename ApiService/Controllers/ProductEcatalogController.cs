@@ -78,47 +78,49 @@ namespace ApiService.Controllers
             return dt;
         }
         //get product
-        private List<ProductSearchVioDataResponse> GetProductsByKtype(List<string> ktypes, List<string> trutypes, List<string> companies) {
+        private List<ProductSearchVioDataResponse> GetProductsByKtype(
+            List<string> ktypes,
+            List<string> trutypes,
+            List<string> companies,
+            string slmCode,
+            string cusCode)
+        {
             var responseList = new List<ProductSearchVioDataResponse>();
             string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
 
-            // =====================
-            // TVP 1: Ktype
-            // =====================
             DataTable dtKtype = new DataTable();
             dtKtype.Columns.Add("Ktype", typeof(string));
-            foreach (string ktype in ktypes) {
+            foreach (string ktype in ktypes)
+            {
                 dtKtype.Rows.Add(ktype);
             }
 
-            // =====================
-            // TVP 2: TruType 
-            // =====================
             DataTable dtTruType = new DataTable();
             dtTruType.Columns.Add("TruType", typeof(string));
-            foreach (string trutype in trutypes) {
-                // กรอง null/empty ออกก่อนใส่ TVP (TruType อาจเป็น null ได้ตามที่เคยเช็ค DBNull ไว้)
-                if (!string.IsNullOrEmpty(trutype)) {
+            foreach (string trutype in trutypes)
+            {
+                if (!string.IsNullOrEmpty(trutype))
+                {
                     dtTruType.Rows.Add(trutype);
                 }
             }
 
-            // =====================
-            // TVP 3: Company 
-            // =====================
             DataTable dtCompany = new DataTable();
             dtCompany.Columns.Add("CompanyCode", typeof(string));
-            if (companies != null) {
-                foreach (string company in companies) {
-                    // กรอง null/empty ออกก่อนใส่ TVP เช่นเดียวกับ trutype
-                    if (!string.IsNullOrEmpty(company)) {
+            if (companies != null)
+            {
+                foreach (string company in companies)
+                {
+                    if (!string.IsNullOrEmpty(company))
+                    {
                         dtCompany.Rows.Add(company);
                     }
                 }
             }
 
             using (SqlConnection conn = new SqlConnection(connectionString))
-            using (SqlCommand cmd = new SqlCommand("P_Search_Product_By_Ktype", conn)) {
+            using (SqlCommand cmd = new SqlCommand("P_Search_Product_By_Ktype", conn))
+            {
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.CommandTimeout = SqlCommandTimeoutSeconds;
 
@@ -130,16 +132,24 @@ namespace ApiService.Controllers
                 pTruType.SqlDbType = SqlDbType.Structured;
                 pTruType.TypeName = "dbo.TrutypeListTmp";
 
-                // ★ เพิ่มใหม่: ส่ง TVP Company เข้า SP
                 SqlParameter pCompany = cmd.Parameters.AddWithValue("@inCompanyList", dtCompany);
                 pCompany.SqlDbType = SqlDbType.Structured;
                 pCompany.TypeName = "dbo.CompanyListTmp";
 
+                // ← เพิ่ม 2 parameter นี้
+                cmd.Parameters.Add("@inSlmCode", SqlDbType.NVarChar, 50).Value =
+                    string.IsNullOrEmpty(slmCode) ? (object)DBNull.Value : slmCode;
+                cmd.Parameters.Add("@inCusCode", SqlDbType.NVarChar, 50).Value =
+                    string.IsNullOrEmpty(cusCode) ? (object)DBNull.Value : cusCode;
+
                 conn.Open();
-                using (SqlDataReader dr = cmd.ExecuteReader()) {
-                    while (dr.Read()) {
+                using (SqlDataReader dr = cmd.ExecuteReader())
+                {
+                    while (dr.Read())
+                    {
                         responseList.Add(
-                            new ProductSearchVioDataResponse {
+                            new ProductSearchVioDataResponse
+                            {
                                 stkcode = dr["stkcode"] == DBNull.Value ? "" : dr["stkcode"].ToString(),
                                 stkcodeDescription = dr["stkcodeDescription"] == DBNull.Value ? "" : dr["stkcodeDescription"].ToString(),
                                 brand = dr["brand"] == DBNull.Value ? "" : dr["brand"].ToString(),
@@ -155,6 +165,7 @@ namespace ApiService.Controllers
                     }
                 }
             }
+
             return responseList;
         }
         [HttpGet]
@@ -200,7 +211,7 @@ namespace ApiService.Controllers
                 List<string> ktypeList = distinctKtypeInfoList.Select(x => x.KType).ToList();
                 List<string> trutypeList = distinctKtypeInfoList.Select(x => x.TruType).ToList();
 
-                var products = GetProductsByKtype(ktypeList, trutypeList, Company);
+                var products = GetProductsByKtype(ktypeList, trutypeList, Company, SlmCode, CusCode);
 
                 return Json(new {
                     statusCode = 200,
