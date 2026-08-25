@@ -183,6 +183,7 @@
     <Compile Include="Controllers\AuthenEcatalogController.cs" />
     <Compile Include="Controllers\AuthenSalesController.cs" />
     <Compile Include="Controllers\ChatBotController.cs" />
+    <Compile Include="Controllers\ClaimUploadController.cs" />
     <Compile Include="Controllers\CustomerController.cs" />
     <Compile Include="Controllers\HappyTrackingController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
