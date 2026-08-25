@@ -82,7 +82,7 @@ namespace ApiService.Controllers
         [HttpGet]
         [Route("Ecatalog/GetMakerCar")]
         [ApiKeyAuthorize]
-        public IHttpActionResult GetMakerCar(string marketSegmentId = "ALL", string vehicelSegmentId = "ALL")
+        public IHttpActionResult GetMakerCar(string marketSegmentId = "ALL", string vehicleSegmentId = "ALL")
         {
             var responseList = new List<MasterMarkerDataResponse>();
             string errorMessage = "Success";
@@ -106,7 +106,7 @@ namespace ApiService.Controllers
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.Add("@inModule", SqlDbType.VarChar, 50).Value = "3";
                     cmd.Parameters.Add("@inMarketseId", SqlDbType.VarChar,50).Value = marketSegmentId;
-                    cmd.Parameters.Add("@inSegmentId", SqlDbType.VarChar,50).Value = vehicelSegmentId;
+                    cmd.Parameters.Add("@inSegmentId", SqlDbType.VarChar,50).Value = vehicleSegmentId;
                     conn.Open();
                     using (SqlDataReader dr = cmd.ExecuteReader())
                     {
