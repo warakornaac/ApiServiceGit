@@ -10,11 +10,11 @@ using ApiService;
 
 namespace ApiService.Controllers
 {
-    public class ClaimUploadController : ApiController
+    public class ReturnUploadController : ApiController
     {
         private readonly ApiServerController _apiServerService;
 
-        public ClaimUploadController()
+        public ReturnUploadController()
         {
             _apiServerService = new ApiServerController();
         }
@@ -31,9 +31,9 @@ namespace ApiService.Controllers
             return path.TrimEnd('\\', '/') + @"\";
         }
 
-        // POST Claim/Image/Upload
+        // POST Return/Image/Upload
         [HttpPost]
-        [Route("Claim/Image/Upload")]
+        [Route("Return/Image/Upload")]
         public IHttpActionResult UploadImage()
         {
             try
@@ -59,7 +59,7 @@ namespace ApiService.Controllers
                         message = "ClaimTest_ConnectionString not found in Web.config"
                     });
 
-                string imgFolder = GetConfigPath("ClaimImagePath");
+                string imgFolder = GetConfigPath("ReturnImagePath");
                 // ตรวจว่า UNC Path เข้าถึงได้จริง
                 if (!Directory.Exists(imgFolder))
                     return Content(HttpStatusCode.InternalServerError, new
@@ -84,7 +84,7 @@ namespace ApiService.Controllers
                         bool allowSave = true;
 
                         // 1) เรียก SP เพื่อให้ DB สร้างชื่อไฟล์
-                        using (var command = new SqlCommand("P_Save_PathImage", connection))
+                        using (var command = new SqlCommand("P_Save_PathImageRT_Sales", connection))
                         {
                             command.CommandType = CommandType.StoredProcedure;
                             command.CommandTimeout = 0;
@@ -100,9 +100,30 @@ namespace ApiService.Controllers
                             command.Parameters.Add(output);
                             command.ExecuteNonQuery();
 
-                            uname = output.Value?.ToString();
+                            uname = output.Value == null || output.Value == DBNull.Value
+                                ? ""
+                                : output.Value.ToString();
+
                             if (string.IsNullOrWhiteSpace(uname))
-                                throw new Exception("P_Save_PathImage did not return @outimagename.");
+                            {
+                                using (var findCmd = new SqlCommand(@"
+                                    SELECT TOP 1 IMAGE_NAME
+                                    FROM PathImage_RT
+                                    WHERE STMP_ID = @STMP_ID
+                                      AND STMP_ID_SUB = @STMP_ID_SUB
+                                    ORDER BY IMAGE_ID DESC", connection))
+                                {
+                                    findCmd.Parameters.AddWithValue("@STMP_ID", No);
+                                    findCmd.Parameters.AddWithValue("@STMP_ID_SUB", inCim_NoSub);
+
+                                    uname = findCmd.ExecuteScalar()?.ToString();
+                                }
+                            }
+
+                            if (string.IsNullOrWhiteSpace(uname))
+                            {
+                                throw new Exception("ไม่พบ IMAGE_NAME ใน PathImage_RT");
+                            }
                         }
 
                         // 2) Save ไฟล์ลง UNC Path เดิม
@@ -139,7 +160,7 @@ namespace ApiService.Controllers
                                         File.Delete(fullPath);
 
                                     // Rollback DB
-                                    using (var delCmd = new SqlCommand("P_Delete_PathImage", connection))
+                                    using (var delCmd = new SqlCommand("P_Delete_PathImageRT", connection))
                                     {
                                         delCmd.CommandType = CommandType.StoredProcedure;
                                         delCmd.Parameters.AddWithValue("@imageName", uname);
@@ -178,9 +199,9 @@ namespace ApiService.Controllers
             }
         }
 
-        // POST Claim/Image/LegacyUpload
+        // POST Return/Image/LegacyUpload
         [HttpPost]
-        [Route("Claim/Image/LegacyUpload")]
+        [Route("Return/Image/LegacyUpload")]
         public IHttpActionResult Upload()
         {
             string fileName = string.Empty;
@@ -203,7 +224,7 @@ namespace ApiService.Controllers
                         });
                 }
 
-                string imgFolder = GetConfigPath("ClaimImagePath");
+                string imgFolder = GetConfigPath("ReturnImagePath");
 
                 if (!Directory.Exists(imgFolder))
                 {
@@ -259,9 +280,9 @@ namespace ApiService.Controllers
             }
         }
 
-        // POST Claim/Image/SavePath
+        // POST Return/Image/SavePath
         [HttpPost]
-        [Route("Claim/Image/SavePath")]
+        [Route("Return/Image/SavePath")]
         public IHttpActionResult SavePathImagetemp(
             string im_name,
             string Cim_No,
@@ -291,54 +312,23 @@ namespace ApiService.Controllers
                 {
                     connection.Open();
 
-                    using (var command =
-                           new SqlCommand("P_Save_PathImage", connection))
+                    using (var command = new SqlCommand("P_Save_PathImage_RT", connection))
                     {
                         command.CommandType = CommandType.StoredProcedure;
                         command.CommandTimeout = 60;
 
-                        command.Parameters.AddWithValue(
-                            "@inim_name",
-                            im_name ?? "");
-
-                        command.Parameters.AddWithValue(
-                            "@inCim_No",
-                            Cim_No ?? "");
-
-                        command.Parameters.AddWithValue(
-                            "@inCim_NoSub",
-                            inCim_NoSub ?? "");
-
-                        command.Parameters.AddWithValue(
-                            "@inIm_No",
-                            Im_No ?? "");
-
-                        var output =
-                            new SqlParameter(
-                                "@outimagename",
-                                SqlDbType.VarChar,
-                                100);
-
-                        output.Direction =
-                            ParameterDirection.Output;
-
-                        command.Parameters.Add(output);
+                        command.Parameters.AddWithValue("@inim_name", im_name ?? "");
+                        command.Parameters.AddWithValue("@inCim_No", Cim_No ?? "");
+                        command.Parameters.AddWithValue("@inCim_NoSub", inCim_NoSub ?? "");
+                        command.Parameters.AddWithValue("@inIm_No", Im_No ?? "");
 
                         command.ExecuteNonQuery();
-
-                        string outputImageName =
-                            output.Value == null ||
-                            output.Value == DBNull.Value
-                                ? ""
-                                : output.Value.ToString();
-
-                        message = "true";
 
                         return Ok(new
                         {
                             success = true,
-                            message,
-                            imgname = outputImageName
+                            message = "true",
+                            imgname = im_name
                         });
                     }
                 }
@@ -356,9 +346,9 @@ namespace ApiService.Controllers
             }
         }
 
-        // POST Claim/Image/Delete
+        // POST Return/Image/Delete
         [HttpPost]
-        [Route("Claim/Image/Delete")]
+        [Route("Return/Image/Delete")]
         public IHttpActionResult DeleteImage(
             string comid, string clmnoup, string clmidimg, string absPath)
         {
@@ -372,7 +362,7 @@ namespace ApiService.Controllers
                 {
                     connection.Open();
 
-                    using (var command = new SqlCommand("P_Delimage", connection))
+                    using (var command = new SqlCommand("P_Delimage_RT", connection))
                     {
                         command.CommandType = CommandType.StoredProcedure;
                         command.Parameters.AddWithValue("@DOC", comid);
@@ -384,7 +374,7 @@ namespace ApiService.Controllers
                     message = "true";
 
                     // ลบไฟล์จาก UNC Path เดิม
-                    string imgFolder = GetConfigPath("ClaimImagePath");
+                    string imgFolder = GetConfigPath("ReturnImagePath");
                     string filePath = Path.Combine(imgFolder, absPath);
                     if (File.Exists(filePath))
                         File.Delete(filePath);
@@ -403,9 +393,9 @@ namespace ApiService.Controllers
             return Ok(new { message });
         }
 
-        // POST Claim/Video/Upload
+        // POST Return/Video/Upload
         [HttpPost]
-        [Route("Claim/Video/Upload")]
+        [Route("Return/Video/Upload")]
         public IHttpActionResult UploadVideo()
         {
             string fileName = string.Empty;
@@ -414,7 +404,7 @@ namespace ApiService.Controllers
 
             try
             {
-                string videoFolder = GetConfigPath("ClaimVideoPath");
+                string videoFolder = GetConfigPath("ReturnVideoPath");
                 if (!Directory.Exists(videoFolder))
                     return Content(HttpStatusCode.InternalServerError, new
                     {
@@ -449,8 +439,9 @@ namespace ApiService.Controllers
             return Ok(new { fileName, message, Size = size });
         }
 
-        // POST Claim/Video/Save
-        [Route("Claim/Video/Save")]
+        // POST Return/Video/Save
+        [HttpPost]
+        [Route("Return/Video/Save")]
         public IHttpActionResult Savefilevideo(
             [FromUri] string aj_CLM_NO_SUB,
             [FromUri] string aj_CLM_NO,
@@ -458,7 +449,7 @@ namespace ApiService.Controllers
             [FromUri] string Size,
             [FromUri] string Im_No)
         {
-            string fileName = string.Empty;
+            string fileName = im_name;
             string message = string.Empty;
 
             try
@@ -470,16 +461,20 @@ namespace ApiService.Controllers
                 {
                     con.Open();
 
-                    using (var cmd = new SqlCommand("spAddNewVideoFile", con))
+                    using (var cmd = new SqlCommand("spAddNewVideoFile_RT", con))
                     {
                         cmd.CommandType = CommandType.StoredProcedure;
-                        cmd.Parameters.AddWithValue("@inCim_No", aj_CLM_NO ?? "");
-                        cmd.Parameters.AddWithValue("@inCim_NoSub", aj_CLM_NO_SUB ?? "");
-                        cmd.Parameters.AddWithValue("@Name", im_name ?? "");
-                        cmd.Parameters.AddWithValue("@FileSize", Size ?? "0");
-                        cmd.Parameters.AddWithValue("@inImg_ID", Im_No ?? "");
-                        cmd.Parameters.AddWithValue("FilePath",
-                            "~/VideoFileUpload/" + im_name + ".mp4");
+
+                        cmd.Parameters.AddWithValue("@inCim_No", aj_CLM_NO);
+                        cmd.Parameters.AddWithValue("@inCim_NoSub", aj_CLM_NO_SUB);
+                        cmd.Parameters.AddWithValue("@Name", im_name);
+                        cmd.Parameters.AddWithValue("@FileSize", Size);
+                        cmd.Parameters.AddWithValue("@inImg_ID", Im_No);
+                        cmd.Parameters.AddWithValue(
+                            "FilePath",
+                            "~/VideoFileUploadRT/" + im_name + ".mp4"
+                        );
+
                         cmd.ExecuteNonQuery();
                     }
                 }
@@ -496,12 +491,16 @@ namespace ApiService.Controllers
                 });
             }
 
-            return Ok(new { fileName, message });
+            return Ok(new
+            {
+                fileName,
+                message
+            });
         }
 
-        // POST Claim/Video/Delete
+        // POST Return/Video/Delete
         [HttpPost]
-        [Route("Claim/Video/Delete")]
+        [Route("Return/Video/Delete")]
         public IHttpActionResult DeleteVideo(
             string comid, string clmnoup, string clmidimg, string absPath, string Im_No)
         {
@@ -515,7 +514,7 @@ namespace ApiService.Controllers
                 {
                     connection.Open();
 
-                    using (var command = new SqlCommand("P_Delvideo", connection))
+                    using (var command = new SqlCommand("P_Delvideo_RT", connection))
                     {
                         command.CommandType = CommandType.StoredProcedure;
                         command.Parameters.AddWithValue("@DOC", comid);
@@ -527,7 +526,7 @@ namespace ApiService.Controllers
                     message = "true";
 
                     // ลบไฟล์จาก UNC Path เดิม
-                    string videoFolder = GetConfigPath("ClaimVideoPath");
+                    string videoFolder = GetConfigPath("ReturnVideoPath");
                     string filePath = Path.Combine(videoFolder, absPath);
                     if (File.Exists(filePath))
                         File.Delete(filePath);
@@ -546,22 +545,22 @@ namespace ApiService.Controllers
             return Ok(new { message });
         }
 
-        // GET ClaimUpload/Test
+        // GET ReturnUpload/Test
         [HttpGet]
-        [Route("ClaimUpload/Test")]
+        [Route("ReturnUpload/Test")]
         public IHttpActionResult Test()
         {
             // ทดสอบว่า config และ path ถูกต้อง
             try
             {
-                string imgPath = GetConfigPath("ClaimImagePath");
-                string videoPath = GetConfigPath("ClaimVideoPath");
+                string imgPath = GetConfigPath("ReturnImagePath");
+                string videoPath = GetConfigPath("ReturnVideoPath");
                 bool imgOk = Directory.Exists(imgPath);
                 bool videoOk = Directory.Exists(videoPath);
 
                 return Ok(new
                 {
-                    controller = "ClaimUploadController OK",
+                    controller = "ReturnUploadController OK",
                     imagePath = imgPath,
                     imageExists = imgOk,
                     videoPath,
@@ -575,6 +574,176 @@ namespace ApiService.Controllers
                     success = false,
                     message = ex.Message
                 });
+            }
+        }
+
+        // POST Return/Image/GetPath
+        [HttpPost]
+        [Route("Return/Image/GetPath")]
+        public IHttpActionResult GetPathImageRT(
+            [FromUri] string inCLM_ID,
+            [FromUri] string CLM_NO)
+        {
+            try
+            {
+                var connSetting =
+                    ConfigurationManager.ConnectionStrings["ClaimTest_ConnectionString"];
+
+                if (connSetting == null)
+                {
+                    return Content(
+                        HttpStatusCode.InternalServerError,
+                        new
+                        {
+                            success = false,
+                            message = "ClaimTest_ConnectionString not found in Web.config"
+                        });
+                }
+
+                var getdata = new System.Collections.Generic.List<object>();
+
+                using (var connection =
+                       new SqlConnection(connSetting.ConnectionString))
+                using (var command =
+                       new SqlCommand("P_GetPathImage_RT", connection))
+                {
+                    command.CommandType = CommandType.StoredProcedure;
+                    command.CommandTimeout = 60;
+
+                    command.Parameters.AddWithValue(
+                        "@inCim_No",
+                        inCLM_ID ?? "");
+
+                    command.Parameters.AddWithValue(
+                        "@inCim_NoSub",
+                        CLM_NO ?? "");
+
+                    connection.Open();
+
+                    using (var dr = command.ExecuteReader())
+                    {
+                        while (dr.Read())
+                        {
+                            getdata.Add(new
+                            {
+                                val = new
+                                {
+                                    IMAGE_ID = dr["IMAGE_ID"].ToString(),
+                                    REQ_NO = dr["STMP_ID"].ToString(),
+                                    CLM_NO_SUB = dr["STMP_ID_SUB"].ToString(),
+                                    IMAGE_NO = dr["IMAGE_NO"].ToString(),
+                                    IMAGE_NAME = dr["IMAGE_NAME"].ToString(),
+
+                                    // RT ใช้ path แบบเดิม
+                                    PATH = Path.Combine(
+                                        @"..\ImgUploadRT\",
+                                        dr["IMAGE_NAME"].ToString())
+                                }
+                            });
+                        }
+                    }
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    Getdata = getdata
+                });
+            }
+            catch (Exception ex)
+            {
+                return Content(
+                    HttpStatusCode.InternalServerError,
+                    new
+                    {
+                        success = false,
+                        message = ex.Message,
+                        detail = ex.ToString()
+                    });
+            }
+        }
+
+        [HttpGet]
+        [Route("Return/Video/Get")]
+        public IHttpActionResult GetfileVideoRT(
+            [FromUri] string inCLM_ID,
+            [FromUri] string CLM_NO,
+            [FromUri] string Im_No)
+        {
+            try
+            {
+                var connSetting =
+                    ConfigurationManager.ConnectionStrings["ClaimTest_ConnectionString"];
+
+                if (connSetting == null)
+                {
+                    return Content(
+                        HttpStatusCode.InternalServerError,
+                        new
+                        {
+                            success = false,
+                            message = "ClaimTest_ConnectionString not found in Web.config"
+                        });
+                }
+
+                var videolist = new System.Collections.Generic.List<object>();
+
+                using (var connection =
+                       new SqlConnection(connSetting.ConnectionString))
+                using (var command =
+                       new SqlCommand("spGetAllVideoFile_RT", connection))
+                {
+                    command.CommandType = CommandType.StoredProcedure;
+                    command.CommandTimeout = 60;
+
+                    command.Parameters.AddWithValue(
+                        "@inCim_No",
+                        inCLM_ID ?? "");
+
+                    command.Parameters.AddWithValue(
+                        "@inCim_NoSub",
+                        CLM_NO ?? "");
+
+                    command.Parameters.AddWithValue(
+                        "@inImg_ID",
+                        Im_No ?? "");
+
+                    connection.Open();
+
+                    using (var rdr = command.ExecuteReader())
+                    {
+                        while (rdr.Read())
+                        {
+                            videolist.Add(new
+                            {
+                                ID = Convert.ToInt32(rdr["ID"]),
+                                Name = rdr["Name"].ToString(),
+                                FileSize = Convert.ToInt32(rdr["FileSize"]),
+
+                                FilePath = Path.Combine(
+                                    @"..\VideoFileUploadRT\",
+                                    rdr["Name"].ToString())
+                            });
+                        }
+                    }
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    videolist
+                });
+            }
+            catch (Exception ex)
+            {
+                return Content(
+                    HttpStatusCode.InternalServerError,
+                    new
+                    {
+                        success = false,
+                        message = ex.Message,
+                        detail = ex.ToString()
+                    });
             }
         }
     }
