@@ -263,10 +263,10 @@ namespace ApiService.Controllers
         [HttpPost]
         [Route("Claim/Image/SavePath")]
         public IHttpActionResult SavePathImagetemp(
-            string im_name,
-            string Cim_No,
-            string Im_No,
-            string inCim_NoSub)
+            [FromUri] string im_name,
+            [FromUri] string Cim_No,
+            [FromUri] string Im_No,
+            [FromUri] string inCim_NoSub)
         {
             string message = string.Empty;
 
@@ -360,7 +360,10 @@ namespace ApiService.Controllers
         [HttpPost]
         [Route("Claim/Image/Delete")]
         public IHttpActionResult DeleteImage(
-            string comid, string clmnoup, string clmidimg, string absPath)
+            [FromUri] string comid,
+            [FromUri] string clmnoup,
+            [FromUri] string clmidimg,
+            [FromUri] string absPath)
         {
             string message = string.Empty;
             var connectionString =
@@ -504,7 +507,11 @@ namespace ApiService.Controllers
         [HttpPost]
         [Route("Claim/Video/Delete")]
         public IHttpActionResult DeleteVideo(
-            string comid, string clmnoup, string clmidimg, string absPath, string Im_No)
+            [FromUri] string comid,
+            [FromUri] string clmnoup,
+            [FromUri] string clmidimg,
+            [FromUri] string absPath,
+            [FromUri] string Im_No)
         {
             string message = string.Empty;
             var connectionString =
