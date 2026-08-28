@@ -214,7 +214,7 @@ namespace ApiService.Controllers
         [HttpGet]
         [Route("Ecatalog/GetBody")]
         [ApiKeyAuthorize]
-        public IHttpActionResult GetBody(string marketSegmentId, string segmentId, string makerId, string rangeId, string modelRangeId) {
+        public IHttpActionResult GetBody(string marketSegmentId, string segmentId, string makerId, string rangeId, string modelRangeId="ALL") {
             var responseList = new List<MasterBodyeDataResponse>();
             string errorMessage = "Success";
             if (string.IsNullOrWhiteSpace(marketSegmentId)) {
