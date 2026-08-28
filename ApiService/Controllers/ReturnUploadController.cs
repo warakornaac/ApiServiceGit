@@ -443,11 +443,11 @@ namespace ApiService.Controllers
         [HttpPost]
         [Route("Return/Video/Save")]
         public IHttpActionResult Savefilevideo(
-            [FromUri] string aj_CLM_NO_SUB,
-            [FromUri] string aj_CLM_NO,
-            [FromUri] string im_name,
-            [FromUri] string Size,
-            [FromUri] string Im_No)
+        [FromUri] string aj_CLM_NO_SUB,
+        [FromUri] string aj_CLM_NO,
+        [FromUri] string im_name,
+        [FromUri] string Size,
+        [FromUri] string Im_No)
         {
             string fileName = im_name;
             string message = string.Empty;

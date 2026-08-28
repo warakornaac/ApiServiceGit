@@ -450,13 +450,14 @@ namespace ApiService.Controllers
         }
 
         // POST Claim/Video/Save
+        [HttpPost]
         [Route("Claim/Video/Save")]
         public IHttpActionResult Savefilevideo(
-            [FromUri] string aj_CLM_NO_SUB,
-            [FromUri] string aj_CLM_NO,
-            [FromUri] string im_name,
-            [FromUri] string Size,
-            [FromUri] string Im_No)
+        [FromUri] string aj_CLM_NO_SUB,
+        [FromUri] string aj_CLM_NO,
+        [FromUri] string im_name,
+        [FromUri] string Size,
+        [FromUri] string Im_No)
         {
             string fileName = string.Empty;
             string message = string.Empty;
