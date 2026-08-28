@@ -27,7 +27,7 @@ namespace ApiService.Controllers
 
         // GET: ChatBot
         //API 1.2
-        [HttpPost]
+        [HttpGet]
         [Route("orders/search")]
         [ApiKeyAuthorize]
         public HttpResponseMessage GetSearchBO(string customer_code = "", string part_no = "", string order_number = "")

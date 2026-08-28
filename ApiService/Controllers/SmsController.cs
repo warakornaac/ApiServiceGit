@@ -17,6 +17,7 @@ using System.Web.Http;
 using System.Web.Mvc;
 using ApiService.Controllers;
 using RouteAttribute = System.Web.Http.RouteAttribute;
+using System.Net;
 
 namespace ApiService.Controllers
 {
@@ -38,34 +39,45 @@ namespace ApiService.Controllers
 
         //POST: Sms
         [Route("Post/SendSms")]
-        public async Task<string> Post([FromBody] SmsModels models)
-        {
-            var client = new HttpClient();
-            var request = new HttpRequestMessage(HttpMethod.Post, "https://portal-otp.smsmkt.com/api/send-message");
-            request.Headers.Add("api_key", "ea9ccaa9aff6e0198be2e0185c3caea2");
-            request.Headers.Add("secret_key", "QBFo5Es5A3OI5xYS");
+        public async Task<IHttpActionResult> Post([FromBody] SmsModels models) {
+            try {
+                // บังคับ TLS 1.2 เพราะ .NET Framework 4.5 default เป็น TLS 1.0
+                System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
 
-            var json = JsonConvert.SerializeObject(new
-            {
-                phone = models.Phone,
-                message = models.Text,
-                sender = "TAC-AAC"
-            });
+                var client = new HttpClient();
+                var request = new HttpRequestMessage(HttpMethod.Post, "https://portal-otp.smsmkt.com/api/send-message");
 
-            // สร้าง StringContent สำหรับ body ของคำขอ
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
+                request.Headers.Add("api_key", "ea9ccaa9aff6e0198be2e0185c3caea2");
+                request.Headers.Add("secret_key", "QBFo5Es5A3OI5xYS");
 
-            request.Content = content;
+                var json = JsonConvert.SerializeObject(new {
+                    phone = models.Phone,
+                    message = models.Text,
+                    sender = "TAC-AAC"
+                });
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                request.Content = content;
 
-            var response = await client.SendAsync(request);
-            response.EnsureSuccessStatusCode();
-            var responseBody = await response.Content.ReadAsStringAsync();
-            String modelsJson = JsonConvert.SerializeObject(models);
+                var response = await client.SendAsync(request);
+                var responseBody = await response.Content.ReadAsStringAsync();
 
-            String lastId = _apiServerService.SaveApiResponse("Post/SendSms", modelsJson.ToString(), models.User.ToString());
-            _apiServerService.UpdateApiRespone(lastId, responseBody.ToString());
 
-            return responseBody;
+                string modelsJson = JsonConvert.SerializeObject(models);
+                string lastId = _apiServerService.SaveApiResponse("Post/SendSms", modelsJson, models.User?.ToString() ?? "");
+                _apiServerService.UpdateApiRespone(lastId, responseBody);
+
+                if (!response.IsSuccessStatusCode) {
+                    return Content((HttpStatusCode)response.StatusCode,
+                        new { error = "SMS API failed", statusCode = (int)response.StatusCode, detail = responseBody });
+                }
+
+                return Ok(responseBody);
+            }
+            catch (Exception ex) {
+                System.Diagnostics.Trace.WriteLine("SendSms Error: " + ex.ToString());
+                return Content(HttpStatusCode.InternalServerError,
+                    new { error = ex.GetType().Name, message = ex.Message, inner = ex.InnerException?.Message });
+            }
         }
     }
 }
