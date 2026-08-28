@@ -214,7 +214,7 @@ namespace ApiService.Controllers
         [HttpGet]
         [Route("Ecatalog/GetBody")]
         [ApiKeyAuthorize]
-        public IHttpActionResult GetBody(string marketSegmentId, string segmentId, string makerId, string rangeId) {
+        public IHttpActionResult GetBody(string marketSegmentId, string segmentId, string makerId, string rangeId, string modelRangeId) {
             var responseList = new List<MasterBodyeDataResponse>();
             string errorMessage = "Success";
             if (string.IsNullOrWhiteSpace(marketSegmentId)) {
@@ -228,13 +228,14 @@ namespace ApiService.Controllers
             try {
                 string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
                 using (SqlConnection conn = new SqlConnection(connectionString))
-                using (SqlCommand cmd = new SqlCommand("P_SearchVIO_Selector_Dev", conn)) {
+                using (SqlCommand cmd = new SqlCommand("P_SearchVIO_Selector_Ecat", conn)) {
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.Add("@inModule", SqlDbType.VarChar, 50).Value = 5;
                     cmd.Parameters.Add("@inMarketseId", SqlDbType.VarChar, 50).Value = marketSegmentId;
                     cmd.Parameters.Add("@inSegmentId", SqlDbType.VarChar, 50).Value = segmentId;
                     cmd.Parameters.Add("@inMakerId", SqlDbType.VarChar, 50).Value = makerId;
                     cmd.Parameters.Add("@inModelRangeId", SqlDbType.VarChar, 50).Value = rangeId;
+                    cmd.Parameters.Add("@inModelRangeExId", SqlDbType.VarChar, 50).Value = modelRangeId;
                     conn.Open();
                     using (SqlDataReader dr = cmd.ExecuteReader()) {
                         while (dr.Read()) {
