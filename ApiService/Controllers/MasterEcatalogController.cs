@@ -282,7 +282,7 @@ namespace ApiService.Controllers
         [HttpGet]
         [Route("Ecatalog/GetEngine")]
         [ApiKeyAuthorize]
-        public IHttpActionResult GetEngine(string marketSegmentId, string segmentId, string makerId, string rangeId, string bodyId) {
+        public IHttpActionResult GetEngine(string marketSegmentId, string segmentId, string makerId, string rangeId, string bodyId, string modelRangeId="") {
             var responseList = new List<MasterEngineDataResponse>();
             string errorMessage = "Success";
             if (string.IsNullOrWhiteSpace(marketSegmentId)) {
@@ -302,6 +302,7 @@ namespace ApiService.Controllers
                     cmd.Parameters.Add("@inSegmentId", SqlDbType.VarChar, 50).Value = segmentId;
                     cmd.Parameters.Add("@inMakerId", SqlDbType.VarChar, 50).Value = makerId;
                     cmd.Parameters.Add("@inModelRangeId", SqlDbType.VarChar, 50).Value = rangeId;
+                    cmd.Parameters.Add("@inModelRangeExId", SqlDbType.VarChar, 50).Value = modelRangeId;
                     cmd.Parameters.Add("@inBodyId", SqlDbType.VarChar, 50).Value = bodyId;
                     conn.Open();
                     using (SqlDataReader dr = cmd.ExecuteReader()) {

@@ -30,7 +30,7 @@ namespace ApiService.Controllers
             _apiServerService = new ApiServerController();
         }
         //get kType
-        private List<typeListInfo> GetKtypeListByCar(string marketSegmentId, string segmentId, string makerId, string rangeId, string bodyId, string engineId, string yearFrom, string yearTo, string driveType, string SlmCode, string CusCode, string Company) {
+        private List<typeListInfo> GetKtypeListByCar(string marketSegmentId, string segmentId, string makerId, string rangeId, string bodyId, string engineId, string yearFrom, string yearTo, string driveType, string SlmCode, string CusCode, string Company, string modelRangeId = "") {
             List<typeListInfo> ktypeList = new List<typeListInfo>();
            
             string connString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
@@ -44,6 +44,7 @@ namespace ApiService.Controllers
                 cmd.Parameters.AddWithValue("@inVehicleId", segmentId);
                 cmd.Parameters.AddWithValue("@inMakerId", makerId);
                 cmd.Parameters.AddWithValue("@inModelId", rangeId);
+                cmd.Parameters.AddWithValue("@inModelrangeId", modelRangeId);
                 cmd.Parameters.AddWithValue("@inBodyId", bodyId);
                 cmd.Parameters.AddWithValue("@inEngineId", engineId);
                 cmd.Parameters.AddWithValue("@inYearFrom", yearFrom);
@@ -171,7 +172,7 @@ namespace ApiService.Controllers
         [HttpGet]
         [Route("Ecatalog/GetProductBySearchVio")]
         [ApiKeyAuthorize]
-        public IHttpActionResult GetProductBySearchVio(string marketSegmentId, string segmentId, string makerId, string rangeId, string bodyId, string engineId, string yearFrom, string yearTo, string driveType, string SlmCode, string CusCode, [FromUri] List<string> Company = null) {
+        public IHttpActionResult GetProductBySearchVio(string marketSegmentId, string segmentId, string makerId, string rangeId, string bodyId, string engineId, string yearFrom, string yearTo, string driveType, string SlmCode, string CusCode, [FromUri] List<string> Company = null, string modelRangeId = "") {
             try {
 
                 string companyParam = Company.Any()
@@ -192,7 +193,8 @@ namespace ApiService.Controllers
                       driveType,
                       SlmCode, 
                       CusCode,
-                      companyParam
+                      companyParam,
+                      modelRangeId
                       );
 
                 if (ktypeInfoList.Count == 0) {
