@@ -921,6 +921,49 @@ namespace ApiService.Controllers
 
         }
 
+        [HttpGet]
+        [Route("Ecatalog/CustomerByCuscode")]
+        [ApiKeyAuthorize]
+        public IHttpActionResult GetCustomerByCuscode(string cuscode = "")
+        {
+            var responseList = new List<GetCustomerRespone>();
+            string errorMessage = "Success";
+            if (string.IsNullOrEmpty(cuscode))
+                return Json(new { statusCode = 400, errorMessage = "Cuscode is required", result = responseList });
+
+            try
+            {
+                string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand("P_Get_CustomerByCuscode", conn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add("@inCUSCOD", SqlDbType.VarChar, 50).Value = cuscode;
+                    conn.Open();
+                    using (SqlDataReader dr = cmd.ExecuteReader())
+                    {
+                        while (dr.Read())
+                        {
+                            responseList.Add(new GetCustomerRespone
+                            {
+                                cuscode = dr["CUSCOD"] == DBNull.Value ? "" : dr["CUSCOD"].ToString(),
+                                cusname = dr["CUSNAM"] == DBNull.Value ? "" : dr["CUSNAM"].ToString(),
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex) { errorMessage = ex.Message; }
+
+            if (responseList.Count == 0)
+                return Json(new { statusCode = 404, errorMessage = "Customer not found.", result = new { } });
+
+            var result = new { statusCode = errorMessage == "Success" ? 200 : 500, errorMessage, result = responseList };
+            string jsonReturn = JsonConvert.SerializeObject(result);
+            String lastId = _apiServerService.SaveApiResponse("Ecatalog/CustomerByCuscode", $"{{cuscode:{cuscode}}}", "");
+            _apiServerService.UpdateApiRespone(lastId, jsonReturn);
+            return Json(result);
+        }
 
         [HttpGet]
         [Route("Ecatalog/GetPicMeiaPortal")]
