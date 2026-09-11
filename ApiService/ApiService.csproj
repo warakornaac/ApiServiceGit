@@ -14,7 +14,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>ApiService</RootNamespace>
     <AssemblyName>ApiService</AssemblyName>
-    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <MvcBuildViews>false</MvcBuildViews>
     <UseIISExpress>true</UseIISExpress>
     <Use64BitIISExpress />
@@ -182,6 +182,7 @@
     <Compile Include="Controllers\ApiServerController.cs" />
     <Compile Include="Controllers\AuthenEcatalogController.cs" />
     <Compile Include="Controllers\AuthenSalesController.cs" />
+    <Compile Include="Controllers\ChatBotBatchController.cs" />
     <Compile Include="Controllers\ChatBotController.cs" />
     <Compile Include="Controllers\ClaimUploadController.cs" />
     <Compile Include="Controllers\CustomerController.cs" />

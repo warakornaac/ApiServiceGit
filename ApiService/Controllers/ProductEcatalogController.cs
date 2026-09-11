@@ -30,7 +30,7 @@ namespace ApiService.Controllers
             _apiServerService = new ApiServerController();
         }
         //get kType
-        private List<typeListInfo> GetKtypeListByCar(string marketSegmentId, string segmentId, string makerId, string rangeId, string bodyId, string engineId, string yearFrom, string yearTo, string driveType, string SlmCode, string CusCode, string Company, string modelRangeId = "") {
+        private async Task<List<typeListInfo>> GetKtypeListByCarAsync(string marketSegmentId, string segmentId, string makerId, string rangeId, string bodyId, string engineId, string yearFrom, string yearTo, string driveType, string SlmCode, string CusCode, string Company, string modelRangeId = "") {
             List<typeListInfo> ktypeList = new List<typeListInfo>();
            
             string connString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
@@ -51,10 +51,10 @@ namespace ApiService.Controllers
                 cmd.Parameters.AddWithValue("@inYearTo", yearTo);
                 cmd.Parameters.AddWithValue("@inDriveType", driveType);
 
-                conn.Open();
+                await conn.OpenAsync().ConfigureAwait(false);
 
-                using (SqlDataReader dr = cmd.ExecuteReader()) {
-                    while (dr.Read()) {
+                using (SqlDataReader dr = await cmd.ExecuteReaderAsync().ConfigureAwait(false)) {
+                    while (await dr.ReadAsync().ConfigureAwait(false)) {
                         ktypeList.Add(new typeListInfo {
                             KType = dr["kType"] == DBNull.Value ? null : dr["kType"].ToString(),
                             TruType = dr["truType"] == DBNull.Value ? null : dr["truType"].ToString()
@@ -79,49 +79,41 @@ namespace ApiService.Controllers
             return dt;
         }
         //get product
-        private List<ProductSearchVioDataResponse> GetProductsByKtype(
+        private async Task<List<ProductSearchVioDataResponse>> GetProductsByKtypeAsync(
             List<string> ktypes,
             List<string> trutypes,
             List<string> companies,
             string slmCode,
-            string cusCode)
-        {
+            string cusCode) {
             var responseList = new List<ProductSearchVioDataResponse>();
             string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
 
             DataTable dtKtype = new DataTable();
             dtKtype.Columns.Add("Ktype", typeof(string));
-            foreach (string ktype in ktypes)
-            {
+            foreach (string ktype in ktypes) {
                 dtKtype.Rows.Add(ktype);
             }
 
             DataTable dtTruType = new DataTable();
             dtTruType.Columns.Add("TruType", typeof(string));
-            foreach (string trutype in trutypes)
-            {
-                if (!string.IsNullOrEmpty(trutype))
-                {
+            foreach (string trutype in trutypes) {
+                if (!string.IsNullOrEmpty(trutype)) {
                     dtTruType.Rows.Add(trutype);
                 }
             }
 
             DataTable dtCompany = new DataTable();
             dtCompany.Columns.Add("CompanyCode", typeof(string));
-            if (companies != null)
-            {
-                foreach (string company in companies)
-                {
-                    if (!string.IsNullOrEmpty(company))
-                    {
+            if (companies != null) {
+                foreach (string company in companies) {
+                    if (!string.IsNullOrEmpty(company)) {
                         dtCompany.Rows.Add(company);
                     }
                 }
             }
 
             using (SqlConnection conn = new SqlConnection(connectionString))
-            using (SqlCommand cmd = new SqlCommand("P_Search_Product_By_Ktype", conn))
-            {
+            using (SqlCommand cmd = new SqlCommand("P_Search_Product_By_Ktype", conn)) {
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.CommandTimeout = SqlCommandTimeoutSeconds;
 
@@ -143,14 +135,11 @@ namespace ApiService.Controllers
                 cmd.Parameters.Add("@inCusCode", SqlDbType.NVarChar, 50).Value =
                     string.IsNullOrEmpty(cusCode) ? (object)DBNull.Value : cusCode;
 
-                conn.Open();
-                using (SqlDataReader dr = cmd.ExecuteReader())
-                {
-                    while (dr.Read())
-                    {
+                await conn.OpenAsync().ConfigureAwait(false);
+                using (SqlDataReader dr = await cmd.ExecuteReaderAsync().ConfigureAwait(false)) {
+                    while (await dr.ReadAsync().ConfigureAwait(false)) {
                         responseList.Add(
-                            new ProductSearchVioDataResponse
-                            {
+                            new ProductSearchVioDataResponse {
                                 stkcode = dr["stkcode"] == DBNull.Value ? "" : dr["stkcode"].ToString(),
                                 stkcodeDescription = dr["stkcodeDescription"] == DBNull.Value ? "" : dr["stkcodeDescription"].ToString(),
                                 brand = dr["brand"] == DBNull.Value ? "" : dr["brand"].ToString(),
@@ -172,7 +161,7 @@ namespace ApiService.Controllers
         [HttpGet]
         [Route("Ecatalog/GetProductBySearchVio")]
         [ApiKeyAuthorize]
-        public IHttpActionResult GetProductBySearchVio(string marketSegmentId, string segmentId, string makerId, string rangeId, string bodyId, string engineId, string yearFrom, string yearTo, string driveType, string SlmCode, string CusCode, [FromUri] List<string> Company = null, string modelRangeId = "") {
+        public async Task<IHttpActionResult> GetProductBySearchVio(string marketSegmentId, string segmentId, string makerId, string rangeId, string bodyId, string engineId, string yearFrom, string yearTo, string driveType, string SlmCode, string CusCode, [FromUri] List<string> Company = null, string modelRangeId = "") {
             try {
 
                 string companyParam = Company.Any()
@@ -181,7 +170,7 @@ namespace ApiService.Controllers
 
                 // หา Ktype
                 List<typeListInfo> ktypeInfoList =
-                GetKtypeListByCar(
+                await GetKtypeListByCarAsync(
                       marketSegmentId,
                       segmentId,
                       makerId,
@@ -195,9 +184,9 @@ namespace ApiService.Controllers
                       CusCode,
                       companyParam,
                       modelRangeId
-                      );
+                      ).ConfigureAwait(false);
 
-                if (ktypeInfoList.Count == 0) {
+                    if (ktypeInfoList.Count == 0) {
                     return Json(new {
                         statusCode = 200,
                         errorMessage = "Ktype not found",
@@ -213,7 +202,7 @@ namespace ApiService.Controllers
                 List<string> ktypeList = distinctKtypeInfoList.Select(x => x.KType).ToList();
                 List<string> trutypeList = distinctKtypeInfoList.Select(x => x.TruType).ToList();
 
-                var products = GetProductsByKtype(ktypeList, trutypeList, Company, SlmCode, CusCode);
+                var products = await GetProductsByKtypeAsync(ktypeList, trutypeList, Company, SlmCode, CusCode).ConfigureAwait(false);
 
                 return Json(new {
                     statusCode = 200,
@@ -257,8 +246,8 @@ namespace ApiService.Controllers
         [HttpPost]
         [Route("Ecatalog/GetProductBySearchCatagory")]
         [ApiKeyAuthorize]
-        public IHttpActionResult GetProductBySearchCatagory([FromBody] ProductSearchCatagoryDataRequest request) {
-            var responseList = new List<ProductSearchVioDataResponse>();
+        public async Task<IHttpActionResult> GetProductBySearchCatagory([FromBody] ProductSearchCatagoryDataRequest request) {
+                var responseList = new List<ProductSearchVioDataResponse>();
             string errorMessage = "Success";
 
             if (request == null) {
@@ -284,14 +273,14 @@ namespace ApiService.Controllers
                         ? string.Join(",", request.Company)
                         : string.Empty;
 
-                    List<typeListInfo> ktypeInfoList = GetKtypeListByCar(
+                    List<typeListInfo> ktypeInfoList = await GetKtypeListByCarAsync(
                         request.marketSegmentId, request.segmentId, request.makerId,
                         request.rangeId, request.bodyId, request.engineId,
                         request.yearFrom, request.yearTo, request.driveType,
                         request.SlmCode, request.CusCode, companyParam
-                    );
+                    ).ConfigureAwait(false);
 
-                    if (ktypeInfoList.Count == 0) {
+                   if (ktypeInfoList.Count == 0) {
                         return Json(new {
                             statusCode = 200,
                             errorMessage = "Ktype not found",
@@ -341,14 +330,14 @@ namespace ApiService.Controllers
                         string.IsNullOrEmpty(request.SlmCode) ? (object)DBNull.Value : request.SlmCode);
 
                     cmd.Parameters.AddWithValue("@inCusCode",
-                        string.IsNullOrEmpty(request.CusCode) ? (object)DBNull.Value : request.CusCode);
+                    string.IsNullOrEmpty(request.CusCode) ? (object)DBNull.Value : request.CusCode);
                     // ★★★ จบส่วนที่เพิ่ม ★★★
 
-                    conn.Open();
+                    await conn.OpenAsync().ConfigureAwait(false);
 
-                    using (SqlDataReader dr = cmd.ExecuteReader()) {
-                        while (dr.Read()) {
-                            responseList.Add(new ProductSearchVioDataResponse {
+                    using (SqlDataReader dr = await cmd.ExecuteReaderAsync().ConfigureAwait(false)) {
+                        while (await dr.ReadAsync().ConfigureAwait(false)) {
+                                responseList.Add(new ProductSearchVioDataResponse {
                                 stkcode = dr["stkcode"] == DBNull.Value ? "" : dr["stkcode"].ToString(),
                                 stkcodeDescription = dr["stkcodeDescription"] == DBNull.Value ? "" : dr["stkcodeDescription"].ToString(),
                                 brand = dr["BrandName"] == DBNull.Value ? "" : dr["BrandName"].ToString(),
@@ -406,8 +395,8 @@ namespace ApiService.Controllers
         [HttpPost]
         [Route("Ecatalog/GetProductBySearchField")]
         [ApiKeyAuthorize]
-        public IHttpActionResult GetProductBySearchField([FromBody] ProductSearchFieldDataRequest request) {
-            var responseList = new List<ProductSearchVioDataResponse>();
+        public async Task<IHttpActionResult> GetProductBySearchField([FromBody] ProductSearchFieldDataRequest request) {
+                var responseList = new List<ProductSearchVioDataResponse>();
             string errorMessage = "Success";
 
             if (request == null) {
@@ -444,7 +433,7 @@ namespace ApiService.Controllers
                         ? string.Join(",", request.Company)
                         : string.Empty;
 
-                    List<typeListInfo> ktypeInfoList = GetKtypeListByCar(
+                    List<typeListInfo> ktypeInfoList = await GetKtypeListByCarAsync(
                         request.marketSegmentId,
                         request.segmentId,
                         request.makerId,
@@ -457,16 +446,16 @@ namespace ApiService.Controllers
                         request.SlmCode,
                         request.CusCode,
                         companyParam
-                    );
+                    ).ConfigureAwait(false);
 
                     // ★ ลบเงื่อนไข early-return ออก
                     // แม้หา ktype ไม่เจอ (ktypeInfoList.Count == 0) ก็ไม่หยุด เพราะ SP รองรับ ktype/trutype ว่างได้
                     // (SP จะไม่กรอง ktype แล้วค้นหาต่อด้วย searchText/searchField ตามปกติ)
 
                     List<typeListInfo> distinctKtypeInfoList = ktypeInfoList
-                        .GroupBy(x => x.KType)
-                        .Select(g => g.First())
-                        .ToList();
+                    .GroupBy(x => x.KType)
+                    .Select(g => g.First())
+                    .ToList();
 
                     // ถ้า ktypeInfoList ว่าง -> distinctKtypeInfoList ก็จะว่างตาม -> ได้ list ว่างเปล่า (ไม่ error)
                     ktypeList = distinctKtypeInfoList.Select(x => x.KType).ToList();
@@ -502,11 +491,11 @@ namespace ApiService.Controllers
                     cmd.Parameters.AddWithValue("@inCuscode",
                         string.IsNullOrEmpty(request.CusCode) ? "111B0005" : request.CusCode);
 
-                    conn.Open();
+                    await conn.OpenAsync().ConfigureAwait(false);
 
-                    using (SqlDataReader dr = cmd.ExecuteReader()) {
-                        while (dr.Read()) {
-                            responseList.Add(
+                    using (SqlDataReader dr = await cmd.ExecuteReaderAsync().ConfigureAwait(false)) {
+                        while (await dr.ReadAsync().ConfigureAwait(false)) {
+                                responseList.Add(
                                 new ProductSearchVioDataResponse {
                                     stkcode = dr["stkcode"] == DBNull.Value ? "" : dr["stkcode"].ToString(),
                                     stkcodeDescription = dr["stkcodeDescription"] == DBNull.Value ? "" : dr["stkcodeDescription"].ToString(),

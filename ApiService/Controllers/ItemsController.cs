@@ -10,6 +10,7 @@ using System.Data;
 using System.Data.SqlClient;
 using ApiService.Filters;
 using System.Net;
+using System.Threading.Tasks;
 
 
 namespace ApiService.Controllers
@@ -17,17 +18,15 @@ namespace ApiService.Controllers
     public class ItemsController : ApiController
     {
         private readonly ApiServerController _apiServerService;
-        public ItemsController()
-        {
+        public ItemsController() {
             _apiServerService = new ApiServerController();
         }
 
         [HttpPost]
         [Route("Items/SearchByDescription")]
         [ApiKeyAuthorize]
-        public IHttpActionResult PostItems([FromBody] List<ItemRequest> requests)
-        {
-            if (requests == null) { 
+        public async Task<IHttpActionResult> PostItems([FromBody] List<ItemRequest> requests) {
+            if (requests == null) {
                 return BadRequest("Empty data request");
             }
             var responses = new List<ItemResponse>();
@@ -35,36 +34,32 @@ namespace ApiService.Controllers
             string errorMessageTxt = "success";
             string[] keySearchArray = requests.Select(r => r.key).ToArray();
             var connectionString = ConfigurationManager.ConnectionStrings["MobileOrder_ConnectionString"].ConnectionString;
-            SqlConnection conn = new SqlConnection(connectionString);
-            var okresp = new HttpResponseMessage(HttpStatusCode.OK)
-            {
+            var okresp = new HttpResponseMessage(HttpStatusCode.OK) {
                 ReasonPhrase = "Success"
             };
-            try
-            {
-                conn.Open();
+            try {
                 // var keySearchArray = string.Join(" ", requests.Select(r => r.key));
                 string concatenatedKeys = string.Join(" ", keySearchArray);
-                SqlCommand cmd = new SqlCommand("P_Search_Item_Media", conn);
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@inSearch", concatenatedKeys);
-                SqlDataReader read = cmd.ExecuteReader();
-                while (read.Read())
-                {
-                    var itemNo = read["STKCOD"] != DBNull.Value ? read["STKCOD"].ToString() : "";
-                    var description = read["STKDES"] != DBNull.Value ? read["STKDES"].ToString() : "";
-                    if (!string.IsNullOrEmpty(itemNo) && seenItemNos.Add(itemNo))
-                    {
-                        responses.Add(new ItemResponse
-                        {
-                            itemNo = itemNo,
-                            fullDescription = description
-                        });
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand("P_Search_Item_Media", conn)) {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@inSearch", concatenatedKeys);
+                    await conn.OpenAsync().ConfigureAwait(false);
+                    using (SqlDataReader read = await cmd.ExecuteReaderAsync().ConfigureAwait(false)) {
+                        while (await read.ReadAsync().ConfigureAwait(false)) {
+                            var itemNo = read["STKCOD"] != DBNull.Value ? read["STKCOD"].ToString() : "";
+                            var description = read["STKDES"] != DBNull.Value ? read["STKDES"].ToString() : "";
+                            if (!string.IsNullOrEmpty(itemNo) && seenItemNos.Add(itemNo)) {
+                                responses.Add(new ItemResponse {
+                                    itemNo = itemNo,
+                                    fullDescription = description
+                                });
+                            }
+                        }
                     }
                 }
             }
-            catch (Exception ex)
-            {
+            catch (Exception ex) {
                 errorMessageTxt = ex.Message.ToString();
             }
             DataRespond dataRes = new DataRespond();
@@ -76,8 +71,8 @@ namespace ApiService.Controllers
             String requestDataLog = JsonConvert.SerializeObject(requests);
             string jsonReturn = JsonConvert.SerializeObject(dataRes);
 
-            String lastId = _apiServerService.SaveApiResponse("Items/SearchByDescription", requestDataLog.ToString(), "");
-            _apiServerService.UpdateApiRespone(lastId, jsonReturn.ToString());
+            String lastId = await _apiServerService.SaveApiResponseAsync("Items/SearchByDescription", requestDataLog.ToString(), "").ConfigureAwait(false);
+            await _apiServerService.UpdateApiResponeAsync(lastId, jsonReturn.ToString()).ConfigureAwait(false);
 
             return Json(dataRes);
         }

@@ -17,14 +17,12 @@ namespace ApiService.Controllers
     {
         private readonly ApiServerController _apiServerService;
 
-        public SaleOrderController()
-        {
+        public SaleOrderController() {
             _apiServerService = new ApiServerController();
         }
         [Route("SaleOrder/Add")]
         [ApiKeyAuthorize]
-        public IHttpActionResult Add([FromBody] OrderData requestData)
-        {
+        public IHttpActionResult Add([FromBody] OrderData requestData) {
             string getEnv = _apiServerService.getEnv();
             string errorMessageTxt = "success";
             string warningTxt = string.Empty;
@@ -35,80 +33,64 @@ namespace ApiService.Controllers
             int countRow = 0;
             List<string> stkcodeList = new List<string>();
             List<string> warningTxtList = new List<string>();
-            try
-            {
-                if (requestData == null)
-                {
+            try {
+                if (requestData == null) {
                     return BadRequest("Invalid or empty json data.");
                 }
-                else
-                {
+                else {
                     rowRequest = requestData.data.Count();
-                    foreach (var rowData in requestData.data)
-                    {
+                    foreach (var rowData in requestData.data) {
                         ++countRow;
                         if (countRow > 0) {
                             countRowWarning = "Row(" + countRow + ") ";
                         }
-                        if (!string.IsNullOrEmpty(rowData.Stkcode))
-                        {
+                        if (!string.IsNullOrEmpty(rowData.Stkcode)) {
                             stkcodeError = rowData.Stkcode + " ";
                         }
-                        if (string.IsNullOrEmpty(rowData.Company))
-                        {
+                        if (string.IsNullOrEmpty(rowData.Company)) {
                             warningTxt = countRowWarning + stkcodeError + "Data Company Empty.";
                             warningTxtList.Add(warningTxt);
                             errorMessageTxt = "error";
                         }
-                        else if (string.IsNullOrEmpty(rowData.Cuscode))
-                        {
+                        else if (string.IsNullOrEmpty(rowData.Cuscode)) {
                             warningTxt = countRowWarning + stkcodeError + "Data Cuscode Empty.";
                             warningTxtList.Add(warningTxt);
                             errorMessageTxt = "error";
                         }
-                        else if (string.IsNullOrEmpty(rowData.Stkcode))
-                        {
+                        else if (string.IsNullOrEmpty(rowData.Stkcode)) {
                             warningTxt = countRowWarning + stkcodeError + "Data Stkcod Empty.";
                             warningTxtList.Add(warningTxt);
                             errorMessageTxt = "error";
                         }
-                        else if (string.IsNullOrEmpty(rowData.SalesPrice))
-                        {
+                        else if (string.IsNullOrEmpty(rowData.SalesPrice)) {
                             warningTxt = countRowWarning + stkcodeError + "Data SalesPrice Empty.";
                             warningTxtList.Add(warningTxt);
                             errorMessageTxt = "error";
                         }
-                        else if (rowData.Quantity == 0)
-                        {
+                        else if (rowData.Quantity == 0) {
                             warningTxt = countRowWarning + stkcodeError + "Data Quantity Empty.";
                             warningTxtList.Add(warningTxt);
                             errorMessageTxt = "error";
                         }
-                        else if (string.IsNullOrEmpty(rowData.InsertBy))
-                        {
+                        else if (string.IsNullOrEmpty(rowData.InsertBy)) {
                             warningTxt = countRowWarning + stkcodeError + "Data InsertBy Empty.";
                             warningTxtList.Add(warningTxt);
                             errorMessageTxt = "error";
                         }
-                        else if (rowData.IsBargain.ToUpper() != "TRUE" && rowData.IsBargain.ToUpper() != "FALSE")
-                        {
+                        else if (rowData.IsBargain.ToUpper() != "TRUE" && rowData.IsBargain.ToUpper() != "FALSE") {
                             warningTxt = countRowWarning + stkcodeError + "Data IsBargain Invalid.";
                             warningTxtList.Add(warningTxt);
                             errorMessageTxt = "error";
                         }
-                        else
-                        {
+                        else {
                             //save data
                             var statusApi = saveDataOrder(rowData.Company, rowData.Cuscode, rowData.Stkcode, rowData.SalesPrice, rowData.Reason, rowData.Quantity, rowData.PromotionId, rowData.InsertBy, rowData.IsBargain.ToUpper());
-                            if (statusApi.ToString() == "Y")
-                            {
+                            if (statusApi.ToString() == "Y") {
                                 ++rowInsert;
                                 stkcodeList.Add(rowData.Stkcode);
                             }
-                            else
-                            {
-                                if (getEnv == "dev")
-                                {
+                            else {
+                                if (getEnv == "dev") {
                                     warningTxt = statusApi.ToString();
                                 }
                                 warningTxtList.Add(warningTxt);
@@ -118,8 +100,7 @@ namespace ApiService.Controllers
                     }
                 }
             }
-            catch (Exception ex)
-            {
+            catch (Exception ex) {
                 //statusReceive = false;
                 errorMessageTxt = ex.Message.ToString();
             }
@@ -140,16 +121,14 @@ namespace ApiService.Controllers
             return Json(dataRes);
         }
         //save data
-        public object saveDataOrder(string Company, string Cuscode, string Stkcode, string SalesPrice, string Reason, int Quantity, string PromotionId, string InsertBy, string IsBargain)
-        {
+        public object saveDataOrder(string Company, string Cuscode, string Stkcode, string SalesPrice, string Reason, int Quantity, string PromotionId, string InsertBy, string IsBargain) {
             var storedResult = string.Empty;
             var flagResult = string.Empty;
             var txtResult = string.Empty;
             var txtRespond = "Y";
             var connectionString = ConfigurationManager.ConnectionStrings["APIDB_ConnectionString"].ConnectionString;
             SqlConnection conn = new SqlConnection(connectionString);
-            try
-            {
+            try {
                 conn.Open();
                 var cmd = new SqlCommand("P_Save_Ai_Order_Cart", conn);
                 cmd.CommandType = CommandType.StoredProcedure;
@@ -168,16 +147,14 @@ namespace ApiService.Controllers
                 cmd.Parameters.Add(p);
                 cmd.ExecuteNonQuery();
                 storedResult = cmd.Parameters["@OutGenstatus"].Value.ToString();
-                if (!string.IsNullOrEmpty(storedResult))
-                {
+                if (!string.IsNullOrEmpty(storedResult)) {
                     if (storedResult != "Y") {
                         txtRespond = storedResult;
                     }
                 }
                 cmd.Dispose();
             }
-            catch (Exception ex)
-            {
+            catch (Exception ex) {
                 txtRespond = ex.ToString();
             }
             conn.Close();
@@ -187,42 +164,37 @@ namespace ApiService.Controllers
         [HttpPost]
         [Route("SaleOrder/GetReason")]
         [ApiKeyAuthorize]
-        public IHttpActionResult GetLookupBySubject()
-        {
+        public IHttpActionResult GetLookupBySubject() {
             string txtSubjectName = "SPC";
-            string txtSubjectDetail= "ListReasonForMobileSystem";
+            string txtSubjectDetail = "ListReasonForMobileSystem";
             var responses = new List<ListLookup>();
             var seenItemNos = new HashSet<string>();
             string errorMessageTxt = "success";
             var connectionString = ConfigurationManager.ConnectionStrings["APIDB_ConnectionString"].ConnectionString;
-            SqlConnection conn = new SqlConnection(connectionString);
-            var okresp = new HttpResponseMessage(HttpStatusCode.OK)
-            {
+            var okresp = new HttpResponseMessage(HttpStatusCode.OK) {
                 ReasonPhrase = "Success"
             };
-            try
-            {
-                conn.Open();
-                SqlCommand cmd = new SqlCommand("P_Get_Lookup_Mobile", conn);
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@inSubjectName", txtSubjectName);
-                SqlDataReader read = cmd.ExecuteReader();
-                while (read.Read())
-                {
-                    var Id = read["Id"] != DBNull.Value ? read["Id"].ToString() : "";
-                    var Description = read["Description"] != DBNull.Value ? read["Description"].ToString() : "";
-                    if (!string.IsNullOrEmpty(Id) && seenItemNos.Add(Description))
-                    {
-                        responses.Add(new ListLookup
-                        {
-                            Id = Id,
-                            Description = Description
-                        });
+            try {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand("P_Get_Lookup_Mobile", conn)) {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@inSubjectName", txtSubjectName);
+                    conn.Open();
+                    using (SqlDataReader read = cmd.ExecuteReader()) {
+                        while (read.Read()) {
+                            var Id = read["Id"] != DBNull.Value ? read["Id"].ToString() : "";
+                            var Description = read["Description"] != DBNull.Value ? read["Description"].ToString() : "";
+                            if (!string.IsNullOrEmpty(Id) && seenItemNos.Add(Description)) {
+                                responses.Add(new ListLookup {
+                                    Id = Id,
+                                    Description = Description
+                                });
+                            }
+                        }
                     }
                 }
             }
-            catch (Exception ex)
-            {
+            catch (Exception ex) {
                 errorMessageTxt = ex.Message.ToString();
             }
             DataRespondListLookup dataRes = new DataRespondListLookup();
@@ -241,7 +213,7 @@ namespace ApiService.Controllers
         }
         public class ListLookup
         {
-            public string Id{ get; set; }
+            public string Id { get; set; }
             public string Description { get; set; }
         }
         public class DataRespondListLookup
@@ -273,7 +245,7 @@ namespace ApiService.Controllers
             public int rowRequest { get; set; }
             public int rowInsert { get; set; }
             public string stkcodeList { get; set; }
-            public string status { get; set; } 
+            public string status { get; set; }
             public string statusMessage { get; set; }
         }
     }
