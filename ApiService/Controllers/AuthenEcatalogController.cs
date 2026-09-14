@@ -1,16 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Web.Http;
-using RouteAttribute = System.Web.Http.RouteAttribute;
+﻿using ApiService.Filters;
 using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
-using ApiService.Filters;
-using System.Net;
 using System.DirectoryServices;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Web;
+using System.Web.Http;
+using RouteAttribute = System.Web.Http.RouteAttribute;
 
 namespace ApiService.Controllers
 {
@@ -191,6 +192,32 @@ namespace ApiService.Controllers
             _apiServerService.UpdateApiRespone(
                 lastId,
                 jsonReturn);
+
+            if (errorMessage == "Success")
+            {
+                var request = HttpContext.Current?.Request;
+                string ip = request?.UserHostAddress ?? "";
+                string browser = request?.Browser?.Browser ?? "";
+                string os = request?.UserAgent ?? "";
+
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    using (SqlCommand cmd = new SqlCommand("P_Ecatalog_LoginLog", conn))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.AddWithValue("@UsrID", Username);
+                        cmd.Parameters.AddWithValue("@SessionId", "");
+                        cmd.Parameters.AddWithValue("@UserType", getUserType);
+                        cmd.Parameters.AddWithValue("@OS", os);
+                        cmd.Parameters.AddWithValue("@Browser", browser);
+                        cmd.Parameters.AddWithValue("@IpAddress", ip);
+                        cmd.Parameters.AddWithValue("@Latitude", "");
+                        cmd.Parameters.AddWithValue("@Longitude", "");
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+            }
 
             return Json(dataRes);
         }
