@@ -17,20 +17,22 @@ namespace ApiService.Controllers
 {
     public class AuthenEcatalogController : ApiController
     {
-        // GET: AuthenEcatalog
         private readonly ApiServerController _apiServerService;
 
-        public AuthenEcatalogController() {
+        public AuthenEcatalogController()
+        {
             _apiServerService = new ApiServerController();
         }
+
         [HttpGet]
         [Route("Ecatalog/UserAuthen")]
         [ApiKeyAuthorize]
-        public IHttpActionResult UserAuthen(string Username, string Password) {
+        public IHttpActionResult UserAuthen(string Username, string Password,
+            string Latitude = "", string Longitude = "", string UserAgent = "")
+        {
             string errorMessage = "Success";
-            string authSource = ""; // "AD" หรือ "DB"
+            string authSource = "";
 
-            // ── ตัวแปรรับข้อมูลจาก DB ──
             string getStatus = "";
             string getUsername = "";
             string getUserType = "";
@@ -39,23 +41,20 @@ namespace ApiService.Controllers
             string getCuscode = "";
             string getIsActive = "";
 
-            // ── ตัวแปรรับข้อมูลจาก AD ──
             string adFullname = "";
             string adDepartment = "";
-            bool   adVerified = false;
+            bool adVerified = false;
 
             var connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
 
-            if (string.IsNullOrWhiteSpace(Username)) {
+            if (string.IsNullOrWhiteSpace(Username))
                 errorMessage = "Username not null";
-            }
-
-            else if (string.IsNullOrWhiteSpace(Password)) {
+            else if (string.IsNullOrWhiteSpace(Password))
                 errorMessage = "Password not null";
-            }
 
-            if (errorMessage == "Success") {
-                // STEP 1 : ลอง Authenticate ผ่าน AD ก่อน
+            if (errorMessage == "Success")
+            {
+                // STEP 1: AD
                 try
                 {
                     string ldapPath = ConfigurationManager.AppSettings["LdapPath"]
@@ -79,31 +78,26 @@ namespace ApiService.Controllers
                 }
                 catch
                 {
-                    // AD ล้มเหลว (ผิด password หรือ user ไม่มีใน AD) → ให้ไป STEP 2
                     adVerified = false;
                 }
 
-                // STEP 2 : ดึงข้อมูล User จาก Database
-                // - ถ้าเจอใน AD  → เช็คแค่ว่า username มีใน DB (ไม่เช็ค password)
-                // - ถ้าไม่เจอ AD → เช็ค username + password ใน DB ตามปกติ
-
+                // STEP 2: DB
                 try
                 {
-                    using (SqlConnection conn = new SqlConnection(connectionString)) {
+                    using (SqlConnection conn = new SqlConnection(connectionString))
+                    {
                         conn.Open();
-                        using (SqlCommand command = new SqlCommand("P_Ecatalog_Authen", conn)) {
+                        using (SqlCommand command = new SqlCommand("P_Ecatalog_Authen", conn))
+                        {
                             command.CommandType = CommandType.StoredProcedure;
                             command.Parameters.AddWithValue("@inUsername", Username);
-                            // ถ้า AD verified แล้ว ไม่ต้องตรวจ password ใน DB
-                            // ส่ง password จริงเฉพาะกรณี fallback to DB
-                            command.Parameters.AddWithValue("@inPassword",
-                                adVerified ? "" : Password);
-                            // เพิ่ม parameter บอก Stored Proc ว่า skip password check หรือไม่
-                            command.Parameters.AddWithValue("@inSkipPasswordCheck",
-                                adVerified ? "Y" : "N");
+                            command.Parameters.AddWithValue("@inPassword", adVerified ? "" : Password);
+                            command.Parameters.AddWithValue("@inSkipPasswordCheck", adVerified ? "Y" : "N");
 
-                            using (SqlDataReader dr = command.ExecuteReader()) {
-                                if (dr.Read()) {
+                            using (SqlDataReader dr = command.ExecuteReader())
+                            {
+                                if (dr.Read())
+                                {
                                     getStatus = dr["Status"].ToString();
                                     getUsername = dr["Username"].ToString();
                                     getUserType = dr["UserType"].ToString();
@@ -114,91 +108,85 @@ namespace ApiService.Controllers
                                 }
                             }
 
-                            // ── ตัดสินผล ──
                             if (adVerified)
                             {
-                                // AD pass แล้ว → เช็คแค่ว่า IsActive = Y ใน DB (ถ้ามีใน DB)
-                                // ถ้าไม่มีใน DB เลย (getIsActive = "") ก็ให้ผ่าน (AD คือ source of truth)
                                 if (!string.IsNullOrEmpty(getIsActive) && getIsActive != "Y")
-                                {
                                     errorMessage = "บัญชีผู้ใช้ถูกระงับการใช้งาน";
-                                }
                                 else
-                                {
                                     authSource = "AD";
-                                }
                             }
                             else
                             {
-                                // AD fail → ต้องผ่าน DB ทั้ง status และ isActive
-                                if (string.IsNullOrEmpty(getIsActive)
-                                    || getIsActive != "Y"
-                                    || getStatus != "Y")
-                                {
+                                if (string.IsNullOrEmpty(getIsActive) || getIsActive != "Y" || getStatus != "Y")
                                     errorMessage = "Username หรือ Password ไม่ถูกต้อง";
-                                }
                                 else
-                                {
                                     authSource = "DB";
-                                }
                             }
                         }
                     }
                 }
-                catch (Exception ex) {
+                catch (Exception ex)
+                {
                     errorMessage = ex.Message;
                 }
             }
 
             DataRespond dataRes = new DataRespond();
-
             dataRes.statusCode = 200;
             dataRes.errorMessage = errorMessage;
             dataRes.result = new List<resultAuthen>();
 
-            if (errorMessage == "Success") {
-                dataRes.result.Add(
-                    new resultAuthen {
-                        verify   = "True",
-                        username = getUsername,
-                        email    = getEmail,
-                        slmcode  = getSlmcode,
-                        cuscode  = getCuscode,
-                        userType = Convert.ToInt32(
-                                string.IsNullOrEmpty(getUserType)
-                                ? "0"
-                                : getUserType),
-                        isActive = !string.IsNullOrEmpty(getIsActive) ? getIsActive : "Y",
-                        authSource = authSource  // บอก client ว่า login ผ่านช่องทางไหน
-                    }
-                );
+            if (errorMessage == "Success")
+            {
+                dataRes.result.Add(new resultAuthen
+                {
+                    verify = "True",
+                    username = getUsername,
+                    email = getEmail,
+                    slmcode = getSlmcode,
+                    cuscode = getCuscode,
+                    userType = Convert.ToInt32(string.IsNullOrEmpty(getUserType) ? "0" : getUserType),
+                    isActive = !string.IsNullOrEmpty(getIsActive) ? getIsActive : "Y",
+                    authSource = authSource
+                });
             }
 
             // LOG
-            var jsonLog = JsonConvert.SerializeObject(
-                    new {
-                        Username,
-                        Password = "******",
-                        AuthSource = authSource
-                    });
+            var jsonLog = JsonConvert.SerializeObject(new
+            {
+                Username,
+                Password = "******",
+                AuthSource = authSource
+            });
 
             string jsonReturn = JsonConvert.SerializeObject(dataRes);
-            string lastId =
-                _apiServerService.SaveApiResponse(
-                    "UserAuthenEcatalog",
-                    jsonLog,
-                    "");
+            string lastId = _apiServerService.SaveApiResponse("UserAuthenEcatalog", jsonLog, "");
+            _apiServerService.UpdateApiRespone(lastId, jsonReturn);
 
-            _apiServerService.UpdateApiRespone(
-                lastId,
-                jsonReturn);
-
-            if (errorMessage == "Success")
+            // LOGIN LOG
+            try
             {
-                var request = HttpContext.Current?.Request;
-                string ip = request?.UserHostAddress ?? "";
-                string browser = request?.Browser?.Browser ?? "";
-                string os = request?.UserAgent ?? "";
+                string ip = HttpContext.Current?.Request?.UserHostAddress ?? "";
+                string ua = string.IsNullOrEmpty(UserAgent)
+                            ? Request.Headers.UserAgent?.ToString() ?? ""
+                            : UserAgent;
+                string browser = "";
+                string os = "";
+
+                var match = System.Text.RegularExpressions.Regex.Match(ua,
+                     @"(Chrome|Firefox|Safari|Edge|OPR|Trident)[/\s]([\d.]+)");
+                if (match.Success)
+                    browser = (match.Groups[1].Value == "OPR" ? "Opera" : match.Groups[1].Value)
+                              + "/" + match.Groups[2].Value;
+                else
+                    browser = ua; // fallback
+                if (ua.Contains("Windows NT 10")) os = "Windows 10";
+                else if (ua.Contains("Windows NT 6.3")) os = "Windows 8.1";
+                else if (ua.Contains("Windows NT 6.1")) os = "Windows 7";
+                else if (ua.Contains("Mac OS X")) os = "macOS";
+                else if (ua.Contains("Android")) os = "Android";
+                else if (ua.Contains("iPhone")) os = "iOS";
+                else if (ua.Contains("Linux")) os = "Linux";
 
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 {
@@ -207,28 +195,31 @@ namespace ApiService.Controllers
                     {
                         cmd.CommandType = CommandType.StoredProcedure;
                         cmd.Parameters.AddWithValue("@UsrID", Username);
-                        cmd.Parameters.AddWithValue("@SessionId", "");
                         cmd.Parameters.AddWithValue("@UserType", getUserType);
                         cmd.Parameters.AddWithValue("@OS", os);
                         cmd.Parameters.AddWithValue("@Browser", browser);
                         cmd.Parameters.AddWithValue("@IpAddress", ip);
-                        cmd.Parameters.AddWithValue("@Latitude", "");
-                        cmd.Parameters.AddWithValue("@Longitude", "");
+                        cmd.Parameters.AddWithValue("@Latitude", Latitude);
+                        cmd.Parameters.AddWithValue("@Longitude", Longitude);
                         cmd.ExecuteNonQuery();
                     }
                 }
             }
+            catch (Exception exLog)
+            {
+                return Json(new { error = exLog.Message, stack = exLog.StackTrace });
+            }
 
             return Json(dataRes);
         }
-        //model
+
         public class DataRespond
         {
             public int statusCode { get; set; }
             public string errorMessage { get; set; }
             public List<resultAuthen> result { get; set; }
         }
-        //array list result
+
         public class resultAuthen
         {
             public string verify { get; set; }
@@ -238,7 +229,7 @@ namespace ApiService.Controllers
             public string cuscode { get; set; }
             public int userType { get; set; }
             public string isActive { get; set; }
-            public string authSource { get; set; } // "AD" | "DB"
+            public string authSource { get; set; }
         }
     }
 }
