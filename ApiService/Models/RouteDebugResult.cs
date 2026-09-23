@@ -9,6 +9,9 @@ namespace ApiService.Models
     /// </summary>
     public class RouteDebugResult
     {
+        /// <summary>CusCode ที่ใช้ยิงจริง (null ถ้าไม่ได้ส่งมา) — ส่งเข้า Field/Ktype/Catagory เท่านั้น</summary>
+        public string CusCode { get; set; }
+
         public FieldRouteDebug Field { get; set; }
         public VioRouteDebug Vio { get; set; }
         public CategoryRouteDebug Category { get; set; }

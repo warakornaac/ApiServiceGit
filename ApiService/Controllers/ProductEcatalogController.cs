@@ -1426,7 +1426,7 @@ namespace ApiService.Controllers
         [HttpGet]
         [Route("Ecatalog/GetProductBySearchGlobal")]
         [ApiKeyAuthorize]
-        public async Task<IHttpActionResult> GetProductBySearchGlobal(string Keyword, bool Debug = false) {
+        public async Task<IHttpActionResult> GetProductBySearchGlobal(string Keyword, string CusCode = null, bool Debug = false) {
             if (Keyword == null || String.IsNullOrWhiteSpace(Keyword)) {
                 return Ok(new {
                     statusCode = 400,
@@ -1436,7 +1436,7 @@ namespace ApiService.Controllers
             }
 
             SearchService service = new SearchService();
-            GlobalSearchResult result = await service.GlobalSearch(Keyword, Debug);
+            GlobalSearchResult result = await service.GlobalSearch(Keyword, Debug, CusCode);
 
             if (Debug) {
                 // โหมด debug: คืนรายละเอียดเต็มทั้ง pipeline (TokenDetails, BatchHits, RouteDebug ฯลฯ)
@@ -1464,6 +1464,11 @@ namespace ApiService.Controllers
             SearchService service = new SearchService();
             service.InvalidateDictionaryCache();
             return Ok(new { Success = true, Message = "Dictionary cache invalidated." });
+        }
+        // เช็คว่าค่าถือว่า "ไม่ได้เลือก" หรือไม่ (ว่าง, null, หรือ "all")
+        private bool IsEmptyOrAll(string value) {
+            return string.IsNullOrEmpty(value)
+                || string.Equals(value, "all", StringComparison.OrdinalIgnoreCase);
         }
         // เช็คว่า request มีการส่งเงื่อนไขรุ่นรถมาไหม (แม้แค่ field เดียวก็ถือว่ามี)
         private bool HasVehicleFilter(ProductSearchCatagoryDataRequest request) {
