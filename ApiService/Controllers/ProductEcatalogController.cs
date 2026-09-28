@@ -1,21 +1,25 @@
 ﻿using ApiService.Filters;
+using ApiService.Models;
+using ApiService.Services;
 using Microsoft.Ajax.Utilities;
 using Newtonsoft.Json;
+using Swashbuckle.Swagger;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
+using System.DirectoryServices;
 using System.Linq;
+using System.Net.Http;
+using System.Threading.Tasks;
 using System.Web;
+using System.Web.Helpers;
 using System.Web.Http;
+using static System.Net.Mime.MediaTypeNames;
+using static System.Web.Razor.Parser.SyntaxConstants;
 using HttpGetAttribute = System.Web.Http.HttpGetAttribute;
 using RouteAttribute = System.Web.Http.RouteAttribute;
-using System.Threading.Tasks;
-using System.DirectoryServices;
-using ApiService.Services;
-using ApiService.Models;
-using System.Net.Http;
 
 namespace ApiService.Controllers
 {
@@ -1423,6 +1427,139 @@ namespace ApiService.Controllers
             };
             return Json(result);
         }
+
+        //arm
+
+        [HttpPost]
+        [Route("Ecatalog/GetAutocompleteEcat")]
+        [ApiKeyAuthorize]
+        public async Task<IHttpActionResult> GetAutocompleteEcat(
+    [FromBody] AutofillDataRequest request)
+        {
+            var responseList = new List<AutoCompleteSearch>();
+            string errorMessage = "Success";
+
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+
+            if (request == null)
+            {
+                return Json(new
+                {
+                    statusCode = 400,
+                    errorMessage = "Request is null",
+                    result = responseList
+                });
+            }
+
+            if (string.IsNullOrWhiteSpace(request.insearch))
+            {
+                return Json(new
+                {
+                    statusCode = 400,
+                    errorMessage = "SearchText is required",
+                    result = responseList
+                });
+            }
+
+            if (request.searchFields == null || !request.searchFields.Any())
+            {
+                return Json(new
+                {
+                    statusCode = 400,
+                    errorMessage = "SearchFields is required",
+                    result = responseList
+                });
+            }
+
+            if (request.Company == null || !request.Company.Any())
+            {
+                return Json(new
+                {
+                    statusCode = 400,
+                    errorMessage = "Company is required",
+                    result = responseList
+                });
+            }
+
+            try
+            {
+                // Build SearchField TVP
+                DataTable tvpSearchField = BuildSearchAutoFieldTable(request);
+                System.Diagnostics.Debug.WriteLine($"[TIME] BuildSearchAutoFieldTable : {sw.ElapsedMilliseconds} ms");
+
+                // Build Company TVP
+                DataTable tvpCompany = BuildCompanyTable(request.Company);
+                System.Diagnostics.Debug.WriteLine($"[TIME] BuildCompanyTable         : {sw.ElapsedMilliseconds} ms");
+
+                string connectionString =
+                    ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
+
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlCommand cmd = new SqlCommand("P_Search_Item_autofill", conn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.CommandTimeout = SqlCommandTimeoutSeconds;
+
+                    cmd.Parameters.Add("@inSearch", SqlDbType.VarChar, 150)
+                        .Value = request.insearch.Trim();
+
+                    cmd.Parameters.Add("@inCUSCOD", SqlDbType.VarChar, 50)
+                        .Value = string.IsNullOrWhiteSpace(request.cuscode)
+                            ? "111B0005"
+                            : request.cuscode.Trim();
+
+                    SqlParameter tvpCompanyParam =
+                        cmd.Parameters.Add("@inCompanyList", SqlDbType.Structured);
+                    tvpCompanyParam.TypeName = "dbo.CompanyListTmp";
+                    tvpCompanyParam.Value = tvpCompany;
+
+                    SqlParameter tvpSearchFieldParam =
+                        cmd.Parameters.Add("@inSearchField", SqlDbType.Structured);
+                    tvpSearchFieldParam.TypeName = "dbo.SearchFieldType";
+                    tvpSearchFieldParam.Value = tvpSearchField;
+
+                    await conn.OpenAsync().ConfigureAwait(false);
+                    System.Diagnostics.Debug.WriteLine($"[TIME] OpenAsync                 : {sw.ElapsedMilliseconds} ms");
+
+                    using (SqlDataReader dr = await cmd.ExecuteReaderAsync().ConfigureAwait(false))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[TIME] ExecuteReaderAsync        : {sw.ElapsedMilliseconds} ms");
+
+                        while (await dr.ReadAsync().ConfigureAwait(false))
+                        {
+                            responseList.Add(new AutoCompleteSearch
+                            {
+                                stkcode = dr["STKCOD"] == DBNull.Value ? "" : dr["STKCOD"].ToString(),
+                                stkdes = dr["STKDES"] == DBNull.Value ? "" : dr["STKDES"].ToString(),
+                                oem = dr["OEM"] == DBNull.Value ? "" : dr["OEM"].ToString()
+                            });
+                        }
+
+                        System.Diagnostics.Debug.WriteLine($"[TIME] ReadAsync Loop Finished   : {sw.ElapsedMilliseconds} ms");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                errorMessage = ex.Message;
+                System.Diagnostics.Debug.WriteLine("GetAutocompleteEcat Error: " + ex);
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[TIME] Total                    : {sw.ElapsedMilliseconds} ms");
+            System.Diagnostics.Debug.WriteLine($"[TIME] Result Count             : {responseList.Count}");
+
+            var result = new
+            {
+                statusCode = errorMessage == "Success" ? 200 : 500,
+                errorMessage,
+                result = responseList
+            };
+
+            return Json(result);
+        }
+
+        //arm
+
         [HttpGet]
         [Route("Ecatalog/GetProductBySearchGlobal")]
         [ApiKeyAuthorize]
@@ -1520,6 +1657,29 @@ namespace ApiService.Controllers
                     }
                 }
             }
+            return dt;
+        }
+
+        private DataTable BuildSearchAutoFieldTable(
+        AutofillDataRequest request)
+        {
+            DataTable dt = new DataTable();
+
+            dt.Columns.Add(
+                "SearchField",
+                typeof(string)
+            );
+
+            foreach (string field in request.searchFields)
+            {
+                if (!string.IsNullOrWhiteSpace(field))
+                {
+                    dt.Rows.Add(
+                        field.Trim()
+                    );
+                }
+            }
+
             return dt;
         }
         public class typeListInfo
@@ -1679,6 +1839,15 @@ namespace ApiService.Controllers
             public string driveType { get; set; }
 
         }
+        public class AutofillDataRequest
+        {
+            //string cuscode = "", string insearch = "",string company = ""
+            public string cuscode { get; set; }
+            public string insearch { get; set; }
+            public List<string> Company { get; set; }
+            public List<string> searchFields { get; set; }
+
+        }
         public class OrderCartProductResponse
         {
             public string ordId { get; set; }
@@ -1732,6 +1901,13 @@ namespace ApiService.Controllers
             public string qty { get; set; }
             public string username { get; set; }
             public string backorder { get; set; }
+        }
+
+        public class AutoCompleteSearch
+        {
+            public string stkcode { get; set; }
+            public string stkdes {  get; set; }
+            public string oem {  get; set; }
         }
     }
 }
