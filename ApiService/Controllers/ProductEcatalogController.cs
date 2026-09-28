@@ -431,7 +431,11 @@ namespace ApiService.Controllers
                 bool hasVehicleFilter = HasVehicleFieldFilter(request);
                 List<string> ktypeList = null;
                 List<string> trutypeList = null;
-
+                // ★ [DISABLED - 2025-06-XX] ปิดการดึง KType ชั่วคราว
+                // เหตุผล: GetProductBySearchField ไม่ต้องการกรองด้วย KType ในทุกกรณี
+                // ktypeList และ trutypeList จะเป็น null เสมอ
+                // TODO: เปิดใช้งานคืน เมื่อต้องการกรองด้วยรุ่นรถอีกครั้ง
+#if false
                 if (hasVehicleFilter) {
                     string companyParam = request.Company != null
                         ? string.Join(",", request.Company)
@@ -465,6 +469,10 @@ namespace ApiService.Controllers
                     ktypeList = distinctKtypeInfoList.Select(x => x.KType).ToList();
                     trutypeList = distinctKtypeInfoList.Select(x => x.TruType).ToList();
                 }
+                #endif
+                // ★ [ACTIVE] ktypeList, trutypeList เป็น null เสมอ (ไม่กรองด้วยรุ่นรถ)
+                ktypeList = null;
+                trutypeList = null;
                 // hasVehicleFilter = false -> ktypeList/trutypeList ยังเป็น null -> BuildKtypeTable/BuildTruTypeTable จะสร้างตารางว่าง
 
                 DataTable tvp = BuildSearchFieldTable(request);
@@ -1605,31 +1613,41 @@ namespace ApiService.Controllers
         // เช็คว่าค่าถือว่า "ไม่ได้เลือก" หรือไม่ (ว่าง, null, หรือ "all")
         private bool IsEmptyOrAll(string value) {
             return string.IsNullOrEmpty(value)
-                || string.Equals(value, "all", StringComparison.OrdinalIgnoreCase);
+                || string.Equals(value, "ALL", StringComparison.OrdinalIgnoreCase);
         }
         // เช็คว่า request มีการส่งเงื่อนไขรุ่นรถมาไหม (แม้แค่ field เดียวก็ถือว่ามี)
         private bool HasVehicleFilter(ProductSearchCatagoryDataRequest request) {
-            return !string.IsNullOrEmpty(request.marketSegmentId)
-                || !string.IsNullOrEmpty(request.segmentId)
-                || !string.IsNullOrEmpty(request.makerId)
-                || !string.IsNullOrEmpty(request.rangeId)
-                || !string.IsNullOrEmpty(request.bodyId)
-                || !string.IsNullOrEmpty(request.engineId)
-                || !string.IsNullOrEmpty(request.yearFrom)
-                || !string.IsNullOrEmpty(request.yearTo)
-                || !string.IsNullOrEmpty(request.driveType);
+            return !IsEmptyOrAll(request.marketSegmentId)
+                || !IsEmptyOrAll(request.segmentId)
+                || !IsEmptyOrAll(request.makerId)
+                || !IsEmptyOrAll(request.rangeId)
+                || !IsEmptyOrAll(request.bodyId)
+                || !IsEmptyOrAll(request.engineId)
+                || !IsEmptyOrAll(request.yearFrom)
+                || !IsEmptyOrAll(request.yearTo)
+                || !IsEmptyOrAll(request.driveType);
         }
 
         private bool HasVehicleFieldFilter(ProductSearchFieldDataRequest request) {
-            return !string.IsNullOrEmpty(request.marketSegmentId)
-                || !string.IsNullOrEmpty(request.segmentId)
-                || !string.IsNullOrEmpty(request.makerId)
-                || !string.IsNullOrEmpty(request.rangeId)
-                || !string.IsNullOrEmpty(request.bodyId)
-                || !string.IsNullOrEmpty(request.engineId)
-                || !string.IsNullOrEmpty(request.yearFrom)
-                || !string.IsNullOrEmpty(request.yearTo)
-                || !string.IsNullOrEmpty(request.driveType);
+            bool marketSegmentActive = !IsEmptyOrAll(request.marketSegmentId);
+            bool segmentActive = !IsEmptyOrAll(request.segmentId);
+            bool makerActive = !IsEmptyOrAll(request.makerId);
+            bool rangeActive = !IsEmptyOrAll(request.rangeId);
+            bool bodyActive = !IsEmptyOrAll(request.bodyId);
+            bool engineActive = !IsEmptyOrAll(request.engineId);
+            bool yearFromActive = !IsEmptyOrAll(request.yearFrom);
+            bool yearToActive = !IsEmptyOrAll(request.yearTo);
+            bool driveTypeActive = !IsEmptyOrAll(request.driveType);
+
+            return marketSegmentActive
+                || segmentActive
+                || makerActive
+                || rangeActive
+                || bodyActive
+                || engineActive
+                || yearFromActive
+                || yearToActive
+                || driveTypeActive;
         }
 
         // สร้าง TVP ktype - ถ้า ktypes เป็น null (ไม่มีเงื่อนไขรถ) จะได้ตารางว่าง = SP จะไม่กรอง
