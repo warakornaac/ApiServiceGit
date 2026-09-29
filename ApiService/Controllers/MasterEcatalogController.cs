@@ -862,7 +862,7 @@ namespace ApiService.Controllers
                             while (dr.Read())
                             {
                                 responseList.Add(new GetCustomerInformationRespone
-                                {                                    
+                                {
                                     cuscode = dr["CUSCOD"] == DBNull.Value ? "" : dr["CUSCOD"].ToString(),
                                     cusname = dr["CUSNAM"] == DBNull.Value ? "" : dr["CUSNAM"].ToString(),
                                     pro = dr["PRO"] == DBNull.Value ? "" : dr["PRO"].ToString(),
@@ -871,11 +871,29 @@ namespace ApiService.Controllers
                                     custype = dr["CUSTYP"] == DBNull.Value ? "" : dr["CUSTYP"].ToString(),
                                     slmcode = dr["SLMCOD"] == DBNull.Value ? "" : dr["SLMCOD"].ToString(),
                                     inactive = dr["INACTIVE"] == DBNull.Value ? "" : dr["INACTIVE"].ToString(),
-                                    block = dr["BLOCKED"] == DBNull.Value ? "" : dr["BLOCKED"].ToString(),
+                                    block = dr["Blocked"] == DBNull.Value ? "" : dr["Blocked"].ToString(),
                                     aacpaytrm = dr["AACPAYTRM"] == DBNull.Value ? "" : dr["AACPAYTRM"].ToString(),
                                     tacpaytrm = dr["TACPAYTRM"] == DBNull.Value ? "" : dr["TACPAYTRM"].ToString(),
+                                    omppaytrm = dr["OMPPAYTRM"] == DBNull.Value ? "" : dr["OMPPAYTRM"].ToString(),
+                                    agspaytrm = dr["AGSPAYTRM"] == DBNull.Value ? "" : dr["AGSPAYTRM"].ToString(),
                                     phone = dr["TELNUM"] == DBNull.Value ? "" : dr["TELNUM"].ToString(),
                                     rating = dr["Rating"] == DBNull.Value ? "" : dr["Rating"].ToString(),
+                                    aaccrline = dr["AACCRLINE"] == DBNull.Value ? 0 : Convert.ToInt32(dr["AACCRLINE"]),
+                                    taccrline = dr["TACCRLINE"] == DBNull.Value ? 0 : Convert.ToInt32(dr["TACCRLINE"]),
+                                    ompcrline = dr["OMPCRLINE"] == DBNull.Value ? 0 : Convert.ToInt32(dr["OMPCRLINE"]),
+                                    agscrline = dr["AGSCRLINE"] == DBNull.Value ? 0 : Convert.ToInt32(dr["AGSCRLINE"]),
+                                    aacbal = dr["AACBAL"] == DBNull.Value ? 0 : Convert.ToInt32(dr["AACBAL"]),
+                                    tacbal = dr["TACBAL"] == DBNull.Value ? 0 : Convert.ToInt32(dr["TACBAL"]),
+                                    ompbal = dr["OMPBAL"] == DBNull.Value ? 0 : Convert.ToInt32(dr["OMPBAL"]),
+                                    agsbal = dr["AGSBAL"] == DBNull.Value ? 0 : Convert.ToInt32(dr["AGSBAL"]),
+                                    aacbaldue = dr["AACBALDue"] == DBNull.Value ? 0 : Convert.ToInt32(dr["AACBALDue"]),
+                                    tacbaldue = dr["TACBALDue"] == DBNull.Value ? 0 : Convert.ToInt32(dr["TACBALDue"]),
+                                    ompbaldue = dr["OMPBALDue"] == DBNull.Value ? 0 : Convert.ToInt32(dr["OMPBALDue"]),
+                                    agsbaldue = dr["AGSBALDue"] == DBNull.Value ? 0 : Convert.ToInt32(dr["AGSBALDue"]),
+                                    aacbildue = dr["AACBILDue"] == DBNull.Value ? "" : Convert.ToDateTime(dr["AACBILDue"]).ToString("yyyy-MM-dd"),
+                                    tacbildue = dr["TACBILDue"] == DBNull.Value ? "" : Convert.ToDateTime(dr["TACBILDue"]).ToString("yyyy-MM-dd"),
+                                    ompbildue = dr["OMPBILDue"] == DBNull.Value ? "" : Convert.ToDateTime(dr["OMPBILDue"]).ToString("yyyy-MM-dd"),
+                                    agsbildue = dr["AGSBILDue"] == DBNull.Value ? "" : Convert.ToDateTime(dr["AGSBILDue"]).ToString("yyyy-MM-dd"),
                                 });
                             }
                         }
@@ -1149,8 +1167,30 @@ namespace ApiService.Controllers
             public string block { get; set; }
             public string aacpaytrm { get; set; }
             public string tacpaytrm { get; set; }
+            public string omppaytrm { get; set; }
+            public string agspaytrm { get; set; }
             public string phone { get; set; }
             public string rating { get; set; }
+            // Credit Line
+            public int aaccrline { get; set; }
+            public int taccrline { get; set; }
+            public int ompcrline { get; set; }
+            public int agscrline { get; set; }
+            // Balance
+            public int aacbal { get; set; }
+            public int tacbal { get; set; }
+            public int ompbal { get; set; }
+            public int agsbal { get; set; }
+            // Balance Due
+            public int aacbaldue { get; set; }
+            public int tacbaldue { get; set; }
+            public int ompbaldue { get; set; }
+            public int agsbaldue { get; set; }
+            // Billing Due Date
+            public string aacbildue { get; set; }
+            public string tacbildue { get; set; }
+            public string ompbildue { get; set; }
+            public string agsbildue { get; set; }
         }
         public class GetPictureMediaPortalRespone
         {
