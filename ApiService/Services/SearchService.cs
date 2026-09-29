@@ -60,7 +60,12 @@ namespace ApiService.Services
         /// รวมถึง TokenDetails/BatchHits เข้าไปด้วย เพื่อ debug ทั้ง pipeline ตั้งแต่ tokenize จนถึงผลจริง
         /// false (default) = รัน pipeline ปกติ ไม่แนบข้อมูล debug เพิ่ม
         /// </param>
-        public async Task<GlobalSearchResult> GlobalSearch(string rawKeyword, bool debug = false) {
+        /// <param name="cusCode">
+        /// รหัสลูกค้า (optional จะส่งมาหรือไม่ก็ได้) ถ้าส่งมาจะถูกส่งต่อไปยัง P_Search_Product_By_Field,
+        /// P_Search_Product_By_Ktype, P_Search_Product_By_Catagory ผ่าน parameter @inCuscode
+        /// (ไม่ส่งเข้า P_Search_Ktype_By_Car เพราะ SP นั้นแค่หา Ktype ยังไม่เกี่ยวกับราคา/สิทธิ์ลูกค้า)
+        /// </param>
+        public async Task<GlobalSearchResult> GlobalSearch(string rawKeyword, bool debug = false, string cusCode = null) {
             var result = new GlobalSearchResult();
 
             // 1) Normalize
@@ -150,7 +155,7 @@ namespace ApiService.Services
             //    - productline/productgroup/brand -> P_Search_Product_By_Catagory
             //    ถ้าเจอหลายกลุ่มพร้อมกัน จะยิงขนานแล้ว union ผลลัพธ์ (dedupe ด้วย stkcode)
             try {
-                var routeResult = await _searchRouterService.RouteWithDebugAsync(sqlRequest).ConfigureAwait(false);
+                var routeResult = await _searchRouterService.RouteWithDebugAsync(sqlRequest, cusCode).ConfigureAwait(false);
                 result.Items = routeResult.MergedItems;
                 result.Success = true;
 

@@ -19,6 +19,10 @@ namespace ApiService.Services
     /// ถ้า query เดียวมีหลายกลุ่มพร้อมกัน (เช่น "ผ้าเบรกhondacity" มีทั้งกลุ่ม Field และกลุ่ม Vio)
     /// จะยิงทุกกลุ่มแบบขนาน (แม้กลุ่มที่ไม่ trigger ก็ return เร็ว ๆ โดยไม่ยิง DB) แล้ว union ผลลัพธ์
     /// เข้าด้วยกัน (dedupe ด้วย stkcode)
+    ///
+    /// รองรับ parameter "cusCode" (optional จะส่งมาหรือไม่ก็ได้) — ถ้ามีค่าจะถูกส่งต่อเข้า @inCuscode
+    /// ของ P_Search_Product_By_Field, P_Search_Product_By_Ktype, P_Search_Product_By_Catagory เท่านั้น
+    /// (ไม่ส่งเข้า P_Search_Ktype_By_Car เพราะ SP นั้นแค่หา Ktype ยังไม่เกี่ยวกับราคา/สิทธิ์ลูกค้า)
     /// </summary>
     public class SearchRouterService
     {
@@ -40,8 +44,8 @@ namespace ApiService.Services
         /// <summary>
         /// จุดเข้าหลักสำหรับใช้งานจริง (production path) — คืนแค่ผลลัพธ์รวมสุดท้าย
         /// </summary>
-        public async Task<List<ProductSearchVioDataResponse>> RouteAsync(SearchSqlRequest request) {
-            var debugResult = await RouteWithDebugAsync(request).ConfigureAwait(false);
+        public async Task<List<ProductSearchVioDataResponse>> RouteAsync(SearchSqlRequest request, string cusCode = null) {
+            var debugResult = await RouteWithDebugAsync(request, cusCode).ConfigureAwait(false);
             return debugResult.MergedItems;
         }
 
@@ -49,10 +53,15 @@ namespace ApiService.Services
         /// จุดเข้าแบบละเอียด — ยิงทั้ง 3 กลุ่มแบบขนานเสมอ (กลุ่มที่ไม่เข้าเกณฑ์จะ return ทันทีโดยไม่ยิง DB)
         /// คืนทั้งผลลัพธ์รวม และ breakdown รายกลุ่ม (params ที่ใช้ยิงจริง + ผลดิบก่อน merge) ไว้ debug
         /// </summary>
-        public async Task<RouteDebugResult> RouteWithDebugAsync(SearchSqlRequest request) {
-            var fieldTask = BuildFieldGroupAsync(request);
-            var vioTask = BuildVioGroupAsync(request);
-            var categoryTask = BuildCategoryGroupAsync(request);
+        /// <param name="request">ผลจาก SearchParser</param>
+        /// <param name="cusCode">
+        /// รหัสลูกค้า (optional) ถ้ามีค่าจะถูกส่งต่อเข้า @inCuscode ของ P_Search_Product_By_Field,
+        /// P_Search_Product_By_Ktype, P_Search_Product_By_Catagory (ไม่ส่งเข้า P_Search_Ktype_By_Car)
+        /// </param>
+        public async Task<RouteDebugResult> RouteWithDebugAsync(SearchSqlRequest request, string cusCode = null) {
+            var fieldTask = BuildFieldGroupAsync(request, cusCode);
+            var vioTask = BuildVioGroupAsync(request, cusCode);
+            var categoryTask = BuildCategoryGroupAsync(request, cusCode);
 
             await Task.WhenAll(fieldTask, vioTask, categoryTask).ConfigureAwait(false);
 
@@ -68,6 +77,7 @@ namespace ApiService.Services
                 .ToList();
 
             return new RouteDebugResult {
+                CusCode = cusCode,
                 Field = field,
                 Vio = vio,
                 Category = category,
@@ -78,7 +88,7 @@ namespace ApiService.Services
         // =====================================================================
         // กลุ่ม 1: description / oe / competitor -> P_Search_Product_By_Field
         // =====================================================================
-        private async Task<FieldRouteDebug> BuildFieldGroupAsync(SearchSqlRequest request) {
+        private async Task<FieldRouteDebug> BuildFieldGroupAsync(SearchSqlRequest request, string cusCode) {
             var debug = new FieldRouteDebug();
 
             var searchFields = request.SearchTypes
@@ -106,12 +116,12 @@ namespace ApiService.Services
                 return debug; // Triggered = false
 
             debug.Triggered = true;
-            debug.Items = await ExecuteSearchFieldAsync(searchText, searchFields).ConfigureAwait(false);
+            debug.Items = await ExecuteSearchFieldAsync(searchText, searchFields, cusCode).ConfigureAwait(false);
 
             return debug;
         }
 
-        private async Task<List<ProductSearchVioDataResponse>> ExecuteSearchFieldAsync(string searchText, List<string> searchFields) {
+        private async Task<List<ProductSearchVioDataResponse>> ExecuteSearchFieldAsync(string searchText, List<string> searchFields, string cusCode) {
             var responseList = new List<ProductSearchVioDataResponse>();
 
             var dt = new DataTable();
@@ -120,7 +130,7 @@ namespace ApiService.Services
                 dt.Rows.Add(field);
 
             using (var conn = new SqlConnection(_connectionString))
-            using (var cmd = new SqlCommand("P_Search_Product_By_Field", conn)) {
+            using (var cmd = new SqlCommand("dbo.P_Search_Product_By_Field", conn)) {
                 cmd.CommandType = CommandType.StoredProcedure;
 
                 cmd.Parameters.Add("@inSearchText", SqlDbType.VarChar, 200).Value = searchText;
@@ -128,6 +138,9 @@ namespace ApiService.Services
                 var tvpParam = cmd.Parameters.AddWithValue("@inSearchField", dt);
                 tvpParam.SqlDbType = SqlDbType.Structured;
                 tvpParam.TypeName = "dbo.SearchFieldType";
+
+                // CusCode เป็น optional — ไม่ส่งมาก็ส่ง DBNull.Value เข้าไป (SP ต้อง handle NULL ได้)
+                cmd.Parameters.Add("@inCuscode", SqlDbType.VarChar, 20).Value = (object)cusCode ?? DBNull.Value;
 
                 await conn.OpenAsync().ConfigureAwait(false);
 
@@ -145,7 +158,7 @@ namespace ApiService.Services
         // =====================================================================
         // กลุ่ม 2: model / maker -> P_Search_Ktype_By_Car + P_Search_Product_By_Ktype
         // =====================================================================
-        private async Task<VioRouteDebug> BuildVioGroupAsync(SearchSqlRequest request) {
+        private async Task<VioRouteDebug> BuildVioGroupAsync(SearchSqlRequest request, string cusCode) {
             var debug = new VioRouteDebug();
 
             var makerId = FirstOrDefault(request.SourceIdsBySearchType, "maker");
@@ -163,6 +176,7 @@ namespace ApiService.Services
             // ไม่สามารถ derive จาก free-text token ได้ ส่งเป็น null (ไม่ใช่ "") เพราะถ้า parameter
             // ฝั่ง SP เป็น type ตัวเลข (INT) การส่ง "" จะทำให้ SQL Server convert ล้มเหลว
             // (Conversion failed when converting the varchar value '' to data type int)
+            // หมายเหตุ: P_Search_Ktype_By_Car ไม่รับ @inCuscode (ตามที่ระบุไว้ ส่งแค่ 3 SP เท่านั้น)
             var ktypes = await GetKtypeListByCarAsync(
                 marketSegmentId: null, segmentId: null, makerId: makerId, rangeId: rangeId,
                 bodyId: null, engineId: null, yearFrom: null, yearTo: null, driveType: null
@@ -173,7 +187,7 @@ namespace ApiService.Services
             if (ktypes.Count == 0)
                 return debug;
 
-            debug.Items = await GetProductsByKtypeAsync(ktypes.Distinct().ToList()).ConfigureAwait(false);
+            debug.Items = await GetProductsByKtypeAsync(ktypes.Distinct().ToList(), cusCode).ConfigureAwait(false);
 
             return debug;
         }
@@ -184,9 +198,15 @@ namespace ApiService.Services
             var ktypeList = new List<string>();
 
             using (var conn = new SqlConnection(_connectionString))
-            using (var cmd = new SqlCommand("P_Search_Ktype_By_Car", conn)) {
+            using (var cmd = new SqlCommand("dbo.P_Search_Ktype_By_Car", conn)) {
                 cmd.CommandType = CommandType.StoredProcedure;
 
+                // หมายเหตุ: SP จริงมี parameter @inModelrangeId แยกจาก @inModelId (คนละ hierarchy level:
+                // ModelRange = กลุ่มรุ่นใหญ่, Model = รุ่นย่อยเจาะจง) เราไม่มีข้อมูล ModelRangeId จาก
+                // dictionary token โดยตรง (มีแต่ VIO_Model -> ModelId) จึงไม่ส่ง @inModelrangeId เลย
+                // ปล่อยให้ใช้ default ('ALL') ของ SP เอง ซึ่งปลอดภัย ไม่กรองอะไรเพิ่ม
+                // ทุก parameter ที่เป็น null ที่นี่ก็ปลอดภัยเช่นกัน เพราะ SP เช็ค "<> 'ALL' AND <> ''"
+                // ซึ่ง NULL เทียบแล้วได้ UNKNOWN (ไม่ true) เงื่อนไข filter จะถูกข้ามไปเหมือนส่ง 'ALL'
                 cmd.Parameters.AddWithValue("@inMarketseId", (object)marketSegmentId ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@inVehicleId", (object)segmentId ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@inMakerId", (object)makerId ?? DBNull.Value);
@@ -208,7 +228,7 @@ namespace ApiService.Services
             return ktypeList;
         }
 
-        private async Task<List<ProductSearchVioDataResponse>> GetProductsByKtypeAsync(List<string> ktypes) {
+        private async Task<List<ProductSearchVioDataResponse>> GetProductsByKtypeAsync(List<string> ktypes, string cusCode) {
             var responseList = new List<ProductSearchVioDataResponse>();
 
             var dtKtype = new DataTable();
@@ -217,12 +237,15 @@ namespace ApiService.Services
                 dtKtype.Rows.Add(ktype);
 
             using (var conn = new SqlConnection(_connectionString))
-            using (var cmd = new SqlCommand("P_Search_Product_By_Ktype", conn)) {
+            using (var cmd = new SqlCommand("dbo.P_Search_Product_By_Ktype", conn)) {
                 cmd.CommandType = CommandType.StoredProcedure;
 
                 var p = cmd.Parameters.AddWithValue("@inKtypeList", dtKtype);
                 p.SqlDbType = SqlDbType.Structured;
                 p.TypeName = "dbo.KtypeListTmp";
+
+                // CusCode เป็น optional — ไม่ส่งมาก็ส่ง DBNull.Value เข้าไป (SP ต้อง handle NULL ได้)
+                cmd.Parameters.Add("@inCuscode", SqlDbType.VarChar, 20).Value = (object)cusCode ?? DBNull.Value;
 
                 await conn.OpenAsync().ConfigureAwait(false);
 
@@ -239,7 +262,7 @@ namespace ApiService.Services
         // =====================================================================
         // กลุ่ม 3: productline / productgroup / brand -> P_Search_Product_By_Catagory
         // =====================================================================
-        private async Task<CategoryRouteDebug> BuildCategoryGroupAsync(SearchSqlRequest request) {
+        private async Task<CategoryRouteDebug> BuildCategoryGroupAsync(SearchSqlRequest request, string cusCode) {
             var debug = new CategoryRouteDebug();
 
             debug.ProductLineIds = ValuesOrEmpty(request.SourceIdsBySearchType, "productline");
@@ -264,21 +287,24 @@ namespace ApiService.Services
             foreach (var id in debug.BrandIds)
                 dt.Rows.Add("brandId", id);
 
-            debug.Items = await ExecuteSearchCatagoryAsync(dt).ConfigureAwait(false);
+            debug.Items = await ExecuteSearchCatagoryAsync(dt, cusCode).ConfigureAwait(false);
 
             return debug;
         }
 
-        private async Task<List<ProductSearchVioDataResponse>> ExecuteSearchCatagoryAsync(DataTable filterTable) {
+        private async Task<List<ProductSearchVioDataResponse>> ExecuteSearchCatagoryAsync(DataTable filterTable, string cusCode) {
             var responseList = new List<ProductSearchVioDataResponse>();
 
             using (var conn = new SqlConnection(_connectionString))
-            using (var cmd = new SqlCommand("P_Search_Product_By_Catagory", conn)) {
+            using (var cmd = new SqlCommand("dbo.P_Search_Product_By_Catagory", conn)) {
                 cmd.CommandType = CommandType.StoredProcedure;
 
                 var param = cmd.Parameters.AddWithValue("@inCategoryFilter", filterTable);
                 param.SqlDbType = SqlDbType.Structured;
                 param.TypeName = "dbo.CategoryFilterType";
+
+                // CusCode เป็น optional — ไม่ส่งมาก็ส่ง DBNull.Value เข้าไป (SP ต้อง handle NULL ได้)
+                cmd.Parameters.Add("@inCuscode", SqlDbType.VarChar, 20).Value = (object)cusCode ?? DBNull.Value;
 
                 await conn.OpenAsync().ConfigureAwait(false);
 
