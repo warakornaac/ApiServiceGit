@@ -98,7 +98,7 @@ namespace ApiService.Controllers
                                     {
                                         getEmail = dr["mail"].ToString();
                                         getSlmcode = dr["SLMCOD"].ToString();
-                                        getCuscode = dr["initials"].ToString();
+                                        getCuscode = "";
                                     }
                                 }
                             }
