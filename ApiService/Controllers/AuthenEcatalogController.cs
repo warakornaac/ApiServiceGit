@@ -105,7 +105,7 @@ namespace ApiService.Controllers
 
                             // เช็ค UserAuthen ว่าถูก disable มั้ย
                             using (SqlCommand cmd = new SqlCommand(
-                                "SELECT IsActive, UserType FROM UserAuthen WHERE username = @u", conn))
+                                 "SELECT IsActive, UserType, Slmcode, Cuscode FROM UserAuthen WHERE username = @u", conn))
                             {
                                 cmd.Parameters.AddWithValue("@u", Username);
                                 using (SqlDataReader dr = cmd.ExecuteReader())
@@ -115,10 +115,15 @@ namespace ApiService.Controllers
                                         getIsActive = dr["IsActive"].ToString();
                                         getUserType = dr["UserType"].ToString();
 
+                                        // ✅ ถ้า UserAuthen มี slmcode/cuscode ให้ใช้ค่านั้นแทน v_ADUser
+                                        if (!string.IsNullOrEmpty(dr["Slmcode"].ToString()))
+                                            getSlmcode = dr["Slmcode"].ToString();
+                                        if (!string.IsNullOrEmpty(dr["Cuscode"].ToString()))
+                                            getCuscode = dr["Cuscode"].ToString();
+
                                         if (getIsActive != "Y")
                                             errorMessage = "บัญชีผู้ใช้ถูกระงับการใช้งาน";
                                     }
-                                    // ไม่มีใน UserAuthen = ผ่านได้เลย ใช้ค่า default
                                 }
                             }
                         }
