@@ -54,7 +54,7 @@ namespace ApiService.Controllers
 
             if (errorMessage == "Success")
             {
-                // STEP 1: AD
+                // STEP 1: AD verify
                 try
                 {
                     string ldapPath = ConfigurationManager.AppSettings["LdapPath"]
@@ -69,9 +69,6 @@ namespace ApiService.Controllers
                     SearchResult adResult = searcher.FindOne();
                     if (adResult != null)
                     {
-                        DirectoryEntry userEntry = adResult.GetDirectoryEntry();
-                        adFullname = userEntry.Properties["Name"]?.Value?.ToString() ?? "";
-                        adDepartment = userEntry.Properties["Department"]?.Value?.ToString() ?? "";
                         adVerified = true;
                         authSource = "AD";
                     }
@@ -87,36 +84,68 @@ namespace ApiService.Controllers
                     using (SqlConnection conn = new SqlConnection(connectionString))
                     {
                         conn.Open();
-                        using (SqlCommand command = new SqlCommand("P_Ecatalog_Authen", conn))
-                        {
-                            command.CommandType = CommandType.StoredProcedure;
-                            command.Parameters.AddWithValue("@inUsername", Username);
-                            command.Parameters.AddWithValue("@inPassword", adVerified ? "" : Password);
-                            command.Parameters.AddWithValue("@inSkipPasswordCheck", adVerified ? "Y" : "N");
 
-                            using (SqlDataReader dr = command.ExecuteReader())
+                        if (adVerified)
+                        {
+                            // ดึงจาก v_ADUser ก่อน
+                            using (SqlCommand cmd = new SqlCommand(
+                                "SELECT mail, SLMCOD, initials, Department FROM v_ADUser WHERE LogInName = @u", conn))
                             {
-                                if (dr.Read())
+                                cmd.Parameters.AddWithValue("@u", Username);
+                                using (SqlDataReader dr = cmd.ExecuteReader())
                                 {
-                                    getStatus = dr["Status"].ToString();
-                                    getUsername = dr["Username"].ToString();
-                                    getUserType = dr["UserType"].ToString();
-                                    getEmail = dr["Email"].ToString();
-                                    getSlmcode = dr["Slmcode"].ToString();
-                                    getCuscode = dr["Cuscode"].ToString();
-                                    getIsActive = dr["IsActive"].ToString();
+                                    if (dr.Read())
+                                    {
+                                        getEmail = dr["mail"].ToString();
+                                        getSlmcode = dr["SLMCOD"].ToString();
+                                        getCuscode = dr["initials"].ToString();
+                                    }
                                 }
                             }
 
-                            if (adVerified)
+                            // เช็ค UserAuthen ว่าถูก disable มั้ย
+                            using (SqlCommand cmd = new SqlCommand(
+                                "SELECT IsActive, UserType FROM UserAuthen WHERE username = @u", conn))
                             {
-                                if (!string.IsNullOrEmpty(getIsActive) && getIsActive != "Y")
-                                    errorMessage = "บัญชีผู้ใช้ถูกระงับการใช้งาน";
-                                else
-                                    authSource = "AD";
+                                cmd.Parameters.AddWithValue("@u", Username);
+                                using (SqlDataReader dr = cmd.ExecuteReader())
+                                {
+                                    if (dr.Read())
+                                    {
+                                        getIsActive = dr["IsActive"].ToString();
+                                        getUserType = dr["UserType"].ToString();
+
+                                        if (getIsActive != "Y")
+                                            errorMessage = "บัญชีผู้ใช้ถูกระงับการใช้งาน";
+                                    }
+                                    // ไม่มีใน UserAuthen = ผ่านได้เลย ใช้ค่า default
+                                }
                             }
-                            else
+                        }
+                        else
+                        {
+                            // DB login เดิม
+                            using (SqlCommand command = new SqlCommand("P_Ecatalog_Authen", conn))
                             {
+                                command.CommandType = CommandType.StoredProcedure;
+                                command.Parameters.AddWithValue("@inUsername", Username);
+                                command.Parameters.AddWithValue("@inPassword", Password);
+                                command.Parameters.AddWithValue("@inSkipPasswordCheck", "N");
+
+                                using (SqlDataReader dr = command.ExecuteReader())
+                                {
+                                    if (dr.Read())
+                                    {
+                                        getStatus = dr["Status"].ToString();
+                                        getUsername = dr["Username"].ToString();
+                                        getUserType = dr["UserType"].ToString();
+                                        getEmail = dr["Email"].ToString();
+                                        getSlmcode = dr["Slmcode"].ToString();
+                                        getCuscode = dr["Cuscode"].ToString();
+                                        getIsActive = dr["IsActive"].ToString();
+                                    }
+                                }
+
                                 if (string.IsNullOrEmpty(getIsActive) || getIsActive != "Y" || getStatus != "Y")
                                     errorMessage = "Username หรือ Password ไม่ถูกต้อง";
                                 else
@@ -141,7 +170,7 @@ namespace ApiService.Controllers
                 dataRes.result.Add(new resultAuthen
                 {
                     verify = "True",
-                    username = getUsername,
+                    username = adVerified ? Username : getUsername,
                     email = getEmail,
                     slmcode = getSlmcode,
                     cuscode = getCuscode,
