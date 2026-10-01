@@ -435,7 +435,7 @@ namespace ApiService.Controllers
                 // เหตุผล: GetProductBySearchField ไม่ต้องการกรองด้วย KType ในทุกกรณี
                 // ktypeList และ trutypeList จะเป็น null เสมอ
                 // TODO: เปิดใช้งานคืน เมื่อต้องการกรองด้วยรุ่นรถอีกครั้ง
-#if false
+                #if false
                 if (hasVehicleFilter) {
                     string companyParam = request.Company != null
                         ? string.Join(",", request.Company)
@@ -541,6 +541,83 @@ namespace ApiService.Controllers
             var json = JsonConvert.SerializeObject(responseList);
             System.Diagnostics.Debug.WriteLine(json);
             return Json(result);
+        }
+        private const int MaxUomPriceItems = 1000;
+
+        [HttpPost]
+        [Route("Ecatalog/GetProductPriceTiersByStkcode")]
+        [ApiKeyAuthorize]
+        public async Task<IHttpActionResult> GetProductPriceTiersByStkcode([FromBody] ProductMoqPriceRequest request) {
+            var responseList = new List<ProductMoqPriceResponse>();
+            string errorMessage = "Success";
+
+            if (request == null || request.items == null || !request.items.Any()) {
+                return Json(new { statusCode = 400, errorMessage = "Items is required", result = responseList });
+            }
+
+            // ตัดรายการที่ไม่สมบูรณ์ + ตัดคู่ซ้ำ (TVP มี PRIMARY KEY ถ้าซ้ำจะ error)
+            var validItems = request.items
+                .Where(x => x != null
+                         && !string.IsNullOrWhiteSpace(x.stkcode)
+                         && !string.IsNullOrWhiteSpace(x.company))
+                .Select(x => new { stkcode = x.stkcode.Trim(), company = x.company.Trim() })
+                .Distinct()
+                .ToList();
+
+            if (!validItems.Any()) {
+                return Json(new { statusCode = 400, errorMessage = "stkcode and company are required", result = responseList });
+            }
+
+            if (validItems.Count > MaxUomPriceItems) {
+                return Json(new { statusCode = 400, errorMessage = "Too many items (max " + MaxUomPriceItems + ")", result = responseList });
+            }
+
+            try {
+                var tvp = new DataTable();
+                tvp.Columns.Add("stkcode", typeof(string));
+                tvp.Columns.Add("company", typeof(string));
+                foreach (var item in validItems) {
+                    tvp.Rows.Add(item.stkcode, item.company);
+                }
+
+                string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
+
+                using (var conn = new SqlConnection(connectionString))
+                using (var cmd = new SqlCommand("P_Get_Product_Moq_Price", conn)) {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.CommandTimeout = SqlCommandTimeoutSeconds;
+
+                    SqlParameter pItems = cmd.Parameters.AddWithValue("@inItems", tvp);
+                    pItems.SqlDbType = SqlDbType.Structured;
+                    pItems.TypeName = "dbo.StkcodeCompanyType";
+
+                    cmd.Parameters.Add("@inCompany", SqlDbType.VarChar, 20).Value = string.IsNullOrEmpty(request.Company) ? (object)DBNull.Value : request.Company;
+                    cmd.Parameters.Add("@inCuscode", SqlDbType.VarChar, 20).Value = string.IsNullOrEmpty(request.CusCode) ? (object)DBNull.Value : request.CusCode;
+
+                    await conn.OpenAsync().ConfigureAwait(false);
+
+                    using (SqlDataReader dr = await cmd.ExecuteReaderAsync().ConfigureAwait(false)) {
+                        while (await dr.ReadAsync().ConfigureAwait(false)) {
+                            responseList.Add(new ProductMoqPriceResponse {
+                                stkcode = dr["stkcode"] == DBNull.Value ? "" : dr["stkcode"].ToString(),
+                                moq = dr["moq"] == DBNull.Value ? "" : dr["moq"].ToString(),
+                                price = dr["price"] == DBNull.Value ? 0m : Convert.ToDecimal(dr["price"]),
+                                company = dr["company"] == DBNull.Value ? "" : dr["company"].ToString(),
+                                cuscode = dr["cuscode"] == DBNull.Value ? "" : dr["cuscode"].ToString()
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex) {
+                errorMessage = ex.Message;
+            }
+
+            return Json(new {
+                statusCode = errorMessage == "Success" ? 200 : 500,
+                errorMessage,
+                result = responseList
+            });
         }
         //get count by tab
         [HttpGet]
@@ -1441,8 +1518,7 @@ namespace ApiService.Controllers
         [HttpPost]
         [Route("Ecatalog/GetAutocompleteEcat")]
         [ApiKeyAuthorize]
-        public async Task<IHttpActionResult> GetAutocompleteEcat(
-    [FromBody] AutofillDataRequest request)
+        public async Task<IHttpActionResult> GetAutocompleteEcat([FromBody] AutofillDataRequest request)
         {
             var responseList = new List<AutoCompleteSearch>();
             string errorMessage = "Success";

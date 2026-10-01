@@ -204,6 +204,8 @@
     <Compile Include="MessageHandlers\APIKeyMessageHandler.cs" />
     <Compile Include="Models\GlobalSearchResult.cs" />
     <Compile Include="Models\ModelData.cs" />
+    <Compile Include="Models\ProductMoqPriceRequestItem.cs" />
+    <Compile Include="Models\ProductMoqPriceResponse.cs" />
     <Compile Include="Models\ProductSearchVioDataResponse.cs" />
     <Compile Include="Models\RouteDebugResult.cs" />
     <Compile Include="Models\SearchDictionaryModel.cs" />
