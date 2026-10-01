@@ -17,6 +17,6 @@ namespace ApiService.Models
         public string fittingDescription { get; set; }
         public string slmCode { get; set; }
         public string cusCode { get; set; }
-        public List<string> company { get; set; }
+        public string company { get; set; }
     }
 }

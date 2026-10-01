@@ -154,7 +154,10 @@ namespace ApiService.Controllers
                                 productGroup = dr["productGroup"] == DBNull.Value ? "" : dr["productGroup"].ToString(),
                                 productLine = dr["productLine"] == DBNull.Value ? "" : dr["productLine"].ToString(),
                                 imagePath = dr["imagePath"] == DBNull.Value ? "" : dr["imagePath"].ToString(),
-                                fittingDescription = dr["FittingDescription"] == DBNull.Value ? "" : dr["FittingDescription"].ToString()
+                                fittingDescription = dr["FittingDescription"] == DBNull.Value ? "" : dr["FittingDescription"].ToString(),
+                                company = dr["Company"] == DBNull.Value ? "" : dr["Company"].ToString(),
+                                slmCode = slmCode,
+                                cusCode = cusCode
                             });
                     }
                 }
@@ -355,8 +358,8 @@ namespace ApiService.Controllers
                                 fittingDescription = dr["FittingDescription"] == DBNull.Value ? "" : dr["FittingDescription"].ToString(),
                                 slmCode = request.SlmCode,
                                 cusCode = request.CusCode,
-                                company = request.Company
-                            });
+                                company = dr["Company"] == DBNull.Value ? "" : dr["Company"].ToString()
+                                });
                         }
                     }
                 }
@@ -523,7 +526,7 @@ namespace ApiService.Controllers
                                     
                                     slmCode = request.SlmCode,
                                     cusCode = request.CusCode,
-                                    company = request.Company
+                                    company = dr["Company"] == DBNull.Value ? "" : dr["Company"].ToString()
                                 });
                         }
                     }
