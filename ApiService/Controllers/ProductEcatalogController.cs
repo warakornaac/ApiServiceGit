@@ -1124,7 +1124,7 @@ namespace ApiService.Controllers
         [HttpPost]
         [Route("Ecatalog/AddProductToCart")]
         [ApiKeyAuthorize]
-        public IHttpActionResult AddProductToCart(string cuscode="", string stkcod = "", string company = "", string price = "", string qty = "", string username = "", string backorder = "0")
+        public IHttpActionResult AddProductToCart(string cuscode="", string stkcod = "", string company = "", string price = "", string qty = "", string username = "", string backorder = "0",string moq = "0")
         {
 
             //var responseList = new List<ProductTabLinkageResponse>();
@@ -1161,6 +1161,7 @@ namespace ApiService.Controllers
                     cmd.Parameters.Add("@lastinvprice", SqlDbType.Decimal).Value = 0.0;
 
                     cmd.Parameters.Add("@Qty", SqlDbType.Int).Value = qty;
+                    cmd.Parameters.Add("@minord", SqlDbType.Int).Value = moq;
                     cmd.Parameters.Add("@Bckorder", SqlDbType.Int).Value = backorder;
                     cmd.Parameters.Add("@InsertedBy", SqlDbType.VarChar, 50).Value = username;
                     cmd.Parameters.Add("@LineNote", SqlDbType.VarChar, 50).Value = "";
