@@ -545,6 +545,149 @@ namespace ApiService.Controllers
             System.Diagnostics.Debug.WriteLine(json);
             return Json(result);
         }
+        // ค้นหาสินค้าสำหรับแชทบอท เหมือน GetProductBySearchVio / GetProductBySearchCatagory
+        // แต่ไม่มี price, qtyReady, imagePath (ส่วนที่ช้าที่สุด)
+        [HttpGet]
+        [Route("Ecatalog/GetProductBySearchVioLite")]
+        [ApiKeyAuthorize]
+        public async Task<IHttpActionResult> GetProductBySearchVioLite(string marketSegmentId, string segmentId, string makerId, string rangeId, string bodyId, string engineId, string yearFrom, string yearTo, string driveType, string SlmCode, string CusCode, [FromUri] List<string> Company = null) {
+            var empty = new List<ProductSearchLiteResponse>();
+            try {
+                // กัน Company เป็น null (endpoint เดิม error ถ้าไม่ส่ง Company)
+                string companyParam = Company != null && Company.Any()
+                    ? string.Join(",", Company)
+                    : string.Empty;
+
+                // หา Ktype
+                List<typeListInfo> ktypeInfoList = await GetKtypeListByCarAsync(
+                    marketSegmentId, segmentId, makerId, rangeId, bodyId, engineId,
+                    yearFrom, yearTo, driveType, SlmCode, CusCode, companyParam
+                ).ConfigureAwait(false);
+
+                if (ktypeInfoList.Count == 0) {
+                    return Json(new { statusCode = 200, errorMessage = "Ktype not found", result = empty });
+                }
+
+                List<typeListInfo> vehicles = ktypeInfoList
+                    .GroupBy(x => x.KType)
+                    .Select(g => g.First())
+                    .ToList();
+
+                List<ProductSearchLiteResponse> result = await ExecuteProductSearchLiteAsync("P_Search_Product_By_Ktype_Lite", Company, cmd => {
+                    AddTableParameter(cmd, "@inKtypeList", BuildKtypeTable(vehicles.Select(x => x.KType).ToList()), "dbo.KtypeListTmp");
+                    AddTableParameter(cmd, "@inTruTypeList", BuildTruTypeTable(vehicles.Select(x => x.TruType).ToList()), "dbo.TrutypeListTmp");
+                    AddTableParameter(cmd, "@inCompanyList", BuildCompanyTable(Company), "dbo.CompanyListTmp");
+                }).ConfigureAwait(false);
+
+                return Json(new { statusCode = 200, errorMessage = "Success", result = result });
+            }
+            catch (Exception ex) {
+                return Json(new { statusCode = 500, errorMessage = ex.Message, result = empty });
+            }
+        }
+
+        [HttpPost]
+        [Route("Ecatalog/GetProductBySearchCategoryLite")]
+        [ApiKeyAuthorize]
+        public async Task<IHttpActionResult> GetProductBySearchCategoryLite([FromBody] ProductSearchCatagoryDataRequest request) {
+            var empty = new List<ProductSearchLiteResponse>();
+
+            // ตรวจ request เหมือน GetProductBySearchCatagory
+            if (request == null) {
+                return Json(new { statusCode = 400, errorMessage = "Request is required", result = empty });
+            }
+            if (
+                (request.productGroupId == null || !request.productGroupId.Any()) &&
+                (request.productLineId == null || !request.productLineId.Any()) &&
+                (request.brandId == null || !request.brandId.Any())
+            ) {
+                return Json(new { statusCode = 400, errorMessage = "At least one filter is required", result = empty });
+            }
+
+            try {
+                List<string> ktypeList = null;
+                List<string> trutypeList = null;
+
+                if (HasVehicleFilter(request)) {
+                    string companyParam = request.Company != null ? string.Join(",", request.Company) : string.Empty;
+
+                    List<typeListInfo> ktypeInfoList = await GetKtypeListByCarAsync(
+                        request.marketSegmentId, request.segmentId, request.makerId,
+                        request.rangeId, request.bodyId, request.engineId,
+                        request.yearFrom, request.yearTo, request.driveType,
+                        request.SlmCode, request.CusCode, companyParam
+                    ).ConfigureAwait(false);
+
+                    // หา Ktype ไม่เจอ ตอบ Ktype not found เหมือน endpoint เดิม
+                    if (ktypeInfoList.Count == 0) {
+                        return Json(new { statusCode = 200, errorMessage = "Ktype not found", result = empty });
+                    }
+
+                    List<typeListInfo> vehicles = ktypeInfoList.GroupBy(x => x.KType).Select(g => g.First()).ToList();
+                    ktypeList = vehicles.Select(x => x.KType).ToList();
+                    trutypeList = vehicles.Select(x => x.TruType).ToList();
+                }
+
+                List<ProductSearchLiteResponse> result = await ExecuteProductSearchLiteAsync("P_Search_Product_By_Category_Lite", request.Company, cmd => {
+                    AddTableParameter(cmd, "@inCategoryFilter", BuildSearchCatagoryTable(request), "dbo.CategoryFilterType");
+                    AddTableParameter(cmd, "@inKtypeList", BuildKtypeTable(ktypeList), "dbo.KtypeListTmp");
+                    AddTableParameter(cmd, "@inTruTypeList", BuildTruTypeTable(trutypeList), "dbo.TrutypeListTmp");
+                    AddTableParameter(cmd, "@inCompanyList", BuildCompanyTable(request.Company), "dbo.CompanyListTmp");
+                }).ConfigureAwait(false);
+
+                return Json(new { statusCode = 200, errorMessage = "Success", result = result });
+            }
+            catch (Exception ex) {
+                return Json(new { statusCode = 500, errorMessage = ex.Message, result = empty });
+            }
+        }
+
+        // เรียก SP แบบ Lite แล้วแปลงผลลัพธ์ (company ใช้ค่าจาก request)
+        private async Task<List<ProductSearchLiteResponse>> ExecuteProductSearchLiteAsync(string procedureName, List<string> company, Action<SqlCommand> addParameters) {
+            var list = new List<ProductSearchLiteResponse>();
+            string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
+
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            using (SqlCommand cmd = new SqlCommand(procedureName, conn)) {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.CommandTimeout = SqlCommandTimeoutSeconds;
+                addParameters(cmd);
+
+                await conn.OpenAsync().ConfigureAwait(false);
+                using (SqlDataReader dr = await cmd.ExecuteReaderAsync().ConfigureAwait(false)) {
+                    int stkcode = dr.GetOrdinal("stkcode");
+                    int description = dr.GetOrdinal("stkcodeDescription");
+                    int brand = dr.GetOrdinal("brand");
+                    int productGroup = dr.GetOrdinal("productGroup");
+                    int productLine = dr.GetOrdinal("productLine");
+                    int fitting = dr.GetOrdinal("fittingDescription");
+                    int makerName = dr.GetOrdinal("makerName");
+                    int modelName = dr.GetOrdinal("modelName");
+
+                    while (await dr.ReadAsync().ConfigureAwait(false)) {
+                        list.Add(new ProductSearchLiteResponse {
+                            stkcode = dr.IsDBNull(stkcode) ? "" : dr.GetString(stkcode),
+                            stkcodeDescription = dr.IsDBNull(description) ? "" : dr.GetString(description),
+                            brand = dr.IsDBNull(brand) ? "" : dr.GetString(brand),
+                            productGroup = dr.IsDBNull(productGroup) ? "" : dr.GetString(productGroup),
+                            productLine = dr.IsDBNull(productLine) ? "" : dr.GetString(productLine),
+                            fittingDescription = dr.IsDBNull(fitting) ? "" : dr.GetString(fitting),
+                            makerName = dr.IsDBNull(makerName) ? "" : dr.GetString(makerName),
+                            modelName = dr.IsDBNull(modelName) ? "" : dr.GetString(modelName),
+                            company = company
+                        });
+                    }
+                }
+            }
+            return list;
+        }
+
+        private static void AddTableParameter(SqlCommand cmd, string name, DataTable value, string typeName) {
+            SqlParameter p = cmd.Parameters.AddWithValue(name, value);
+            p.SqlDbType = SqlDbType.Structured;
+            p.TypeName = typeName;
+        }
+
         private const int MaxUomPriceItems = 1000;
 
         [HttpPost]
