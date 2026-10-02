@@ -1267,7 +1267,7 @@ namespace ApiService.Controllers
         [HttpPost]
         [Route("Ecatalog/AddProductToCart")]
         [ApiKeyAuthorize]
-        public IHttpActionResult AddProductToCart(string cuscode="", string stkcod = "", string company = "", string price = "", string qty = "", string username = "", string backorder = "0",string moq = "0")
+        public IHttpActionResult AddProductToCart(string cuscode="", string stkcod = "", string company = "", string price = "", string qty = "", string username = "", string backorder = "0",string moq = "1")
         {
 
             //var responseList = new List<ProductTabLinkageResponse>();
@@ -1332,6 +1332,7 @@ namespace ApiService.Controllers
                 company = company,
                 price = price,
                 qty = qty,
+                moq = moq,
                 username = username,
                 backorder = backorder
             };
@@ -1357,7 +1358,7 @@ namespace ApiService.Controllers
         [HttpPost]
         [Route("Ecatalog/EditProductToCart")]
         [ApiKeyAuthorize]
-        public IHttpActionResult EditProductToCart(string ordid = "", string cuscode="", int qty = 0 ,decimal price = 0 ,string username = "")
+        public IHttpActionResult EditProductToCart(string ordid = "", string cuscode="", int qty = 0 ,decimal price = 0 ,string username = "",string moq = "1")
         {
 
             var responseList = new List<CartEditResponse>();
@@ -1418,6 +1419,7 @@ namespace ApiService.Controllers
                     cmd.Parameters.Add("@inOrdId", SqlDbType.Int).Value = ordid;
                     cmd.Parameters.Add("@inCUSCOD", SqlDbType.VarChar, 50).Value = cuscode;
                     cmd.Parameters.Add("@inQty", SqlDbType.Int).Value = qty;
+                    cmd.Parameters.Add("@inMoq", SqlDbType.Int).Value = moq;
                     cmd.Parameters.Add("@inPrice", SqlDbType.Decimal).Value = price;
                     cmd.Parameters.Add("@inUsername", SqlDbType.VarChar, 50).Value = username;
 
@@ -1434,6 +1436,7 @@ namespace ApiService.Controllers
                                 cuscode = dr["CUSCOD"] == DBNull.Value ? "" : dr["CUSCOD"].ToString(),
                                 stkcod = dr["STKCOD"] == DBNull.Value ? "" : dr["STKCOD"].ToString(),
                                 qty = dr["Qty"] == DBNull.Value ? "" : dr["Qty"].ToString(),
+                                moq = dr["Moq"] == DBNull.Value ? "" : dr["Moq"].ToString(),
                                 price = dr["Price"] == DBNull.Value ? "" : dr["Price"].ToString(),
                                 backorder = dr["BackOrder"] == DBNull.Value ? "" : dr["BackOrder"].ToString(),
                                 username = dr["EditedBy"] == DBNull.Value ? "" : dr["EditedBy"].ToString()
@@ -1531,6 +1534,7 @@ namespace ApiService.Controllers
                                 cuscode = dr["CUSCOD"] == DBNull.Value ? "" : dr["CUSCOD"].ToString(),
                                 stkcod = dr["STKCOD"] == DBNull.Value ? "" : dr["STKCOD"].ToString(),
                                 qty = dr["Qty"] == DBNull.Value ? "" : dr["Qty"].ToString(),
+                                moq = dr["Moq"] == DBNull.Value ? "" : dr["Moq"].ToString(),
                                 price = dr["Price"] == DBNull.Value ? "" : dr["Price"].ToString(),
                                 backorder = dr["BackOrder"] == DBNull.Value ? "" : dr["BackOrder"].ToString(),
                                 username = dr["DeletedBy"] == DBNull.Value ? "" : dr["DeletedBy"].ToString()
@@ -2118,6 +2122,7 @@ namespace ApiService.Controllers
             public string company { get; set; }
             public string price { get; set; }
             public string qty { get; set; }
+            public string moq { get; set; }
             public string username { get; set; }
             public string backorder { get; set; }
         }
@@ -2130,6 +2135,7 @@ namespace ApiService.Controllers
             public string company { get; set; }
             public string price { get; set; }
             public string qty { get; set; }
+            public string moq { get; set; }
             public string username { get; set; }
             public string backorder { get; set; }
         }
@@ -2140,6 +2146,7 @@ namespace ApiService.Controllers
             public string company { get; set; }
             public string price { get; set; }
             public string qty { get; set; }
+            public string moq { get; set; }
             public string username { get; set; }
             public string backorder { get; set; }
         }
