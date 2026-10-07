@@ -177,6 +177,7 @@
     <Compile Include="Controllers\ApiServerController.cs" />
     <Compile Include="Controllers\AuthenEcatalogController.cs" />
     <Compile Include="Controllers\AuthenSalesController.cs" />
+    <Compile Include="Controllers\AuthenServiceController.cs" />
     <Compile Include="Controllers\ChatBotBatchController.cs" />
     <Compile Include="Controllers\ChatBotController.cs" />
     <Compile Include="Controllers\ClaimUploadController.cs" />
@@ -308,6 +309,7 @@
     <Folder Include="App_Data\" />
     <Folder Include="Repository\" />
     <Folder Include="Views\AuthenEcatalog\" />
+    <Folder Include="Views\AuthenService\" />
     <Folder Include="Views\ChatBot\" />
     <Folder Include="Views\Customer\" />
     <Folder Include="Views\Default\" />
