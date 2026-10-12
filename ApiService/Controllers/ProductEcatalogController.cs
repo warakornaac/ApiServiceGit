@@ -484,6 +484,12 @@ namespace ApiService.Controllers
 
                 string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
 
+                var selectedCompanies = new HashSet<string>(
+                    (request.Company ?? new List<string>())
+                        .Where(c => !string.IsNullOrWhiteSpace(c))
+                        .Select(c => c.Trim().ToUpperInvariant())
+                );
+
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 using (SqlCommand cmd = new SqlCommand("P_Search_Product_By_Field", conn)) {
                     cmd.CommandType = CommandType.StoredProcedure;
@@ -509,25 +515,31 @@ namespace ApiService.Controllers
                     await conn.OpenAsync().ConfigureAwait(false);
 
                     using (SqlDataReader dr = await cmd.ExecuteReaderAsync().ConfigureAwait(false)) {
-                        while (await dr.ReadAsync().ConfigureAwait(false)) {
-                                responseList.Add(
+                        while (await dr.ReadAsync().ConfigureAwait(false))
+                        {
+                            string rowCompany = dr["Company"] == DBNull.Value ? "" : dr["Company"].ToString().Trim();
+
+                            if (selectedCompanies.Count > 0 && !selectedCompanies.Contains(rowCompany.ToUpperInvariant()))
+                                continue;
+
+                            responseList.Add(
                                 new ProductSearchVioDataResponse {
-                                    stkcode = dr["stkcode"] == DBNull.Value ? "" : dr["stkcode"].ToString(),
-                                    stkcodeDescription = dr["stkcodeDescription"] == DBNull.Value ? "" : dr["stkcodeDescription"].ToString(),
-                                    brand = dr["BrandName"] == DBNull.Value ? "" : dr["BrandName"].ToString(),
-                                    makerName = dr["makerName"] == DBNull.Value ? "" : dr["makerName"].ToString(),
-                                    modelName = dr["modelName"] == DBNull.Value ? "" : dr["modelName"].ToString(),
-                                    qtyReady = dr["qtyReady"] == DBNull.Value ? "" : dr["qtyReady"].ToString(),
-                                    price = dr["price"] == DBNull.Value ? "" : dr["price"].ToString(),
-                                    productGroup = dr["productGroupName"] == DBNull.Value ? "" : dr["productGroupName"].ToString(),
-                                    productLine = dr["productLineName"] == DBNull.Value ? "" : dr["productLineName"].ToString(),
-                                    imagePath = dr["imagePath"] == DBNull.Value ? "" : dr["imagePath"].ToString(),
-                                    fittingDescription = dr["FittingDescription"] == DBNull.Value ? "" : dr["FittingDescription"].ToString(),
+                                stkcode = dr["stkcode"] == DBNull.Value ? "" : dr["stkcode"].ToString(),
+                                stkcodeDescription = dr["stkcodeDescription"] == DBNull.Value ? "" : dr["stkcodeDescription"].ToString(),
+                                brand = dr["BrandName"] == DBNull.Value ? "" : dr["BrandName"].ToString(),
+                                makerName = dr["makerName"] == DBNull.Value ? "" : dr["makerName"].ToString(),
+                                modelName = dr["modelName"] == DBNull.Value ? "" : dr["modelName"].ToString(),
+                                qtyReady = dr["qtyReady"] == DBNull.Value ? "" : dr["qtyReady"].ToString(),
+                                price = dr["price"] == DBNull.Value ? "" : dr["price"].ToString(),
+                                productGroup = dr["productGroupName"] == DBNull.Value ? "" : dr["productGroupName"].ToString(),
+                                productLine = dr["productLineName"] == DBNull.Value ? "" : dr["productLineName"].ToString(),
+                                imagePath = dr["imagePath"] == DBNull.Value ? "" : dr["imagePath"].ToString(),
+                                fittingDescription = dr["FittingDescription"] == DBNull.Value ? "" : dr["FittingDescription"].ToString(),
                                     
-                                    slmCode = request.SlmCode,
-                                    cusCode = request.CusCode,
-                                    company = dr["Company"] == DBNull.Value ? "" : dr["Company"].ToString()
-                                });
+                                slmCode = request.SlmCode,
+                                cusCode = request.CusCode,
+                                company = dr["Company"] == DBNull.Value ? "" : dr["Company"].ToString()
+                            });
                         }
                     }
                 }
