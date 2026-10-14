@@ -11,6 +11,7 @@ namespace ApiService.Models
         public string modelName { get; set; }
         public string qtyReady { get; set; }
         public string price { get; set; }
+        public string dealerPrice { get; set; }
         public string productGroup { get; set; }
         public string productLine { get; set; }
         public string imagePath { get; set; }
