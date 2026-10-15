@@ -408,29 +408,28 @@ namespace ApiService.Controllers
         [HttpGet]
         [Route("Ecatalog/GetProductGroup")]
         [ApiKeyAuthorize]
-        public IHttpActionResult GeProductGroups()
+        public IHttpActionResult GetProductGroups([FromUri] List<string> Company = null)
         {
             var responseList = new List<MasterCatProductGroupDataResponse>();
             string errorMessage = "Success";
-            //if (string.IsNullOrWhiteSpace(cuscod))
-            //{
-            //    return Json(new
-            //    {
-            //        statusCode = 400,
-            //        errorMessage = "cuscod is required",
-            //        result = responseList
-            //    });
-            //}
+
             try
             {
+                DataTable tvpCompany = BuildCompanyTable(Company);
+
                 string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     using (SqlCommand cmd = new SqlCommand("P_Get_CatProductGroup", conn))
                     {
                         cmd.CommandType = CommandType.StoredProcedure;
-                        //cmd.Parameters.Add("@inCUSCOD", SqlDbType.VarChar, 50).Value = cuscod;
+
+                        SqlParameter pCompany = cmd.Parameters.AddWithValue("@inCompanyList", tvpCompany);
+                        pCompany.SqlDbType = SqlDbType.Structured;
+                        pCompany.TypeName = "dbo.CompanyListTmp";
+
                         conn.Open();
+
                         using (SqlDataReader dr = cmd.ExecuteReader())
                         {
                             while (dr.Read())
@@ -438,7 +437,8 @@ namespace ApiService.Controllers
                                 responseList.Add(new MasterCatProductGroupDataResponse
                                 {
                                     prodgrpid = Convert.ToString(dr["prodGrpId"]),
-                                    prodgrpname = Convert.ToString(dr["prodGrpName"])
+                                    prodgrpname = Convert.ToString(dr["prodGrpName"]),
+                                    company = Convert.ToString(dr["company"])
                                 });
                             }
                         }
@@ -449,21 +449,24 @@ namespace ApiService.Controllers
             {
                 errorMessage = ex.Message;
             }
+
             var result = new
             {
                 statusCode =
-                   errorMessage == "Success"
-                   ? 200
-                   : 500,
+                    errorMessage == "Success"
+                    ? 200
+                    : 500,
 
                 errorMessage,
 
                 result = responseList
             };
+
             var jsonLog = JsonConvert.SerializeObject(new
             {
-                //productLine = cuscod,
+                Company = Company
             });
+
             string jsonReturn = JsonConvert.SerializeObject(result);
             String lastId = _apiServerService.SaveApiResponse("Ecatalog/GetProductGroup", jsonLog, "");
             _apiServerService.UpdateApiRespone(lastId, jsonReturn.ToString());
@@ -474,7 +477,7 @@ namespace ApiService.Controllers
         [HttpGet]
         [Route("Ecatalog/GetProductLine")]
         [ApiKeyAuthorize]
-        public IHttpActionResult GetProductLine(string prodGrpId = "0")
+        public IHttpActionResult GetProductLine(string prodGrpId = "0", [FromUri] List<string> Company = null)
         {
             var responseList = new List<MasterCatProductLineDataResponse>();
             string errorMessage = "Success";
@@ -489,13 +492,17 @@ namespace ApiService.Controllers
             //}
             try
             {
+                DataTable tvpCompany = BuildCompanyTable(Company);
                 string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     using (SqlCommand cmd = new SqlCommand("P_Get_CatProductLine", conn))
                     {
                         cmd.CommandType = CommandType.StoredProcedure;
-                        cmd.Parameters.Add("@inProdGrpId", SqlDbType.Int).Value = int.Parse(prodGrpId); 
+                        cmd.Parameters.Add("@inProdGrpId", SqlDbType.Int).Value = int.Parse(prodGrpId);
+                        SqlParameter pCompany = cmd.Parameters.AddWithValue("@inCompanyList", tvpCompany);
+                        pCompany.SqlDbType = SqlDbType.Structured;
+                        pCompany.TypeName = "dbo.CompanyListTmp";
                         conn.Open();
                         using (SqlDataReader dr = cmd.ExecuteReader())
                         {
@@ -504,7 +511,8 @@ namespace ApiService.Controllers
                                 responseList.Add(new MasterCatProductLineDataResponse
                                 {
                                     prodlineid = Convert.ToString(dr["prodLineId"]),
-                                    prodlinename = Convert.ToString(dr["prodLineName"])
+                                    prodlinename = Convert.ToString(dr["prodLineName"]),
+                                    company = Convert.ToString(dr["company"]),
                                 });
                             }
                         }
@@ -540,12 +548,13 @@ namespace ApiService.Controllers
         [HttpGet]
         [Route("Ecatalog/GetProductGroupMatched")]
         [ApiKeyAuthorize]
-        public IHttpActionResult GetProductGroupMatched(string prodGrpId = "0", string prodLineId = "0")
+        public IHttpActionResult GetProductGroupMatched(string prodGrpId = "0", string prodLineId = "0",[FromUri] List<string> Company = null)
         {
             var responseList = new List<ProductMatchDataResponse>();
             string errorMessage = "Success";
             try
             {
+                DataTable tvpCompany = BuildCompanyTable(Company);
                 string connectionString = ConfigurationManager.ConnectionStrings["Ecatalog_ConnectionString"].ConnectionString;
                 using (SqlConnection conn = new SqlConnection(connectionString))
                 {
@@ -554,6 +563,9 @@ namespace ApiService.Controllers
                         cmd.CommandType = CommandType.StoredProcedure;
                         cmd.Parameters.Add("@inProdGrpId", SqlDbType.Int).Value = prodGrpId;
                         cmd.Parameters.Add("@inProdLineId", SqlDbType.Int).Value = prodLineId;
+                        SqlParameter pCompany = cmd.Parameters.AddWithValue("@inCompanyList", tvpCompany);
+                        pCompany.SqlDbType = SqlDbType.Structured;
+                        pCompany.TypeName = "dbo.CompanyListTmp";
                         conn.Open();
                         using (SqlDataReader dr = cmd.ExecuteReader())
                         {
@@ -562,7 +574,8 @@ namespace ApiService.Controllers
                                 responseList.Add(new ProductMatchDataResponse
                                 {
                                     prodgrpid = Convert.ToString(dr["prodGrpId"]),
-                                    prodlineid = Convert.ToString(dr["prodLineId"])
+                                    prodlineid = Convert.ToString(dr["prodLineId"]),
+                                    company = Convert.ToString(dr["company"])
                                 });
                             }
                         }
@@ -1071,6 +1084,25 @@ namespace ApiService.Controllers
             return Json(result);
         }
 
+
+        private DataTable BuildCompanyTable(List<string> companies)
+        {
+            DataTable dt = new DataTable();
+            dt.Columns.Add("CompanyCode", typeof(string));
+
+            if (companies != null)
+            {
+                foreach (string company in companies)
+                {
+                    if (!string.IsNullOrEmpty(company))
+                    {
+                        dt.Rows.Add(company);
+                    }
+                }
+            }
+            return dt;
+        }
+
         public class MasterMarkerDataResponse
         {
             public string Id { get; set; }
@@ -1117,16 +1149,21 @@ namespace ApiService.Controllers
         {
             public string prodgrpid { get; set; }
             public string prodgrpname { get; set; }
+            public string company { get; set; }
+
         }
         public class MasterCatProductLineDataResponse
         {
             public string prodlineid { get; set; }
             public string prodlinename { get; set; }
+            public string company {  get; set; }
         }
         public class ProductMatchDataResponse
         {
             public string prodgrpid { get; set; }
             public string prodlineid { get; set; }
+            public string company { get; set; }
+
         }
         public class ShiptoDataResponse
         {
